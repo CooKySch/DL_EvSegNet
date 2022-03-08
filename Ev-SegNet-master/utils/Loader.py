@@ -5,7 +5,7 @@ import tensorflow as tf
 from tensorflow.keras.utils import to_categorical
 import glob
 import cv2
-from augmenters import get_augmenter
+from utils.augmenters import get_augmenter
 
 np.random.seed(7)
 problemTypes = ['classification', 'segmentation']
@@ -145,7 +145,7 @@ class Loader:
         This function transofrm those 1's into a weight using the median frequency
         '''
         weights = self.median_freq
-        for i in xrange(masks.shape[0]):
+        for i in range(masks.shape[0]):
             # for every mask of the batch
             label_image = labels[i, :, :]
             mask_image = masks[i, :, :]
@@ -154,7 +154,7 @@ class Loader:
             label_image = np.reshape(label_image, (dim_2 * dim_1))
             mask_image = np.reshape(mask_image, (dim_2 * dim_1))
 
-            for label_i in xrange(self.n_classes):
+            for label_i in range(self.n_classes):
                 # multiply the mask so far, with the median frequency wieght of that label
                 mask_image[label_image == label_i] = mask_image[label_image == label_i] * weights[label_i]
             # unique, counts = np.unique(mask_image, return_counts=True)
@@ -360,7 +360,7 @@ class Loader:
         elif self.problemType == 'segmentation':
             for image_label_train in self.label_train_list:
                 image = cv2.imread(image_label_train, 0)
-                for label in xrange(self.n_classes):
+                for label in range(self.n_classes):
                     self.freq[label] = self.freq[label] + sum(sum(image == label))
 
         # Common code
@@ -389,7 +389,7 @@ class Loader:
         make_up_pixels = np.random.randint(0, high=make_up_pixels_max)
         change_value_pixels = np.random.randint(0, high=change_value_pixels_max)
 
-        for index in xrange(swap_pixels):
+        for index in range(swap_pixels):
             i = np.random.randint(0, w)
             j = np.random.randint(0, h)
             i_n, j_n = get_neighbour(i, j, w-1, h-1)
@@ -397,14 +397,14 @@ class Loader:
             event_image[:, i, j, :] = event_image[:, i_n, j_n, :]
             event_image[:, i_n, j_n, :] = value_aux
 
-        for index in xrange(change_value_pixels):
+        for index in range(change_value_pixels):
             i = np.random.randint(0, w)
             j = np.random.randint(0, h)
             i_n, j_n = get_neighbour(i, j, w-1, h-1)
             if event_image[0, i_n, j_n, 0] > - 1 or event_image[0, i_n, j_n, 1] > - 1:
                 event_image[:, i, j, :] = event_image[:, i_n, j_n, :]
 
-        for index in xrange(make_up_pixels):
+        for index in range(make_up_pixels):
             i = np.random.randint(0, w)
             j = np.random.randint(0, h)
             event_image[:, i, j, 0] = np.random.random() * 2 - 1
@@ -414,7 +414,7 @@ class Loader:
             event_image[:, i, j, 4] = np.random.random() * 2 - 1
             event_image[:, i, j, 5] = np.random.random()
 
-        for index in xrange(delete_pixel_pixels):
+        for index in range(delete_pixel_pixels):
             i = np.random.randint(0, w)
             j = np.random.randint(0, h)
             event_image[:, i, j, 0] = -1
@@ -469,7 +469,7 @@ if __name__ == "__main__":
     # print(loader.median_frequency_exp())
     x, y, mask = loader.get_batch(size=6, augmenter='segmentation')
 
-    for i in xrange(6):
+    for i in range(6):
         cv2.imshow('x', (x[i, :, :, 0]).astype(np.uint8))
         cv2.imshow('dvs+', (x[i, :, :, 1] * 127).astype(np.int8))
         cv2.imshow('dvs-', (x[i, :, :, 2] * 127).astype(np.int8))

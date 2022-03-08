@@ -1,3 +1,10 @@
+# Personal files
+.idea
+.DS_Store
+*/data/
+data/
+
+
 
 images_out*
 prueba
