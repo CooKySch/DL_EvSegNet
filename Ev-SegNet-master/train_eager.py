@@ -67,8 +67,9 @@ def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None
             # save model if better
             if test_miou > best_miou:
                 best_miou = test_miou
-                model.save_weights(name_best_model.format(epoch))
-                #saver.save(name_best_model)
+                model.save(name_best_save_model)
+                model.save_weights(name_best_weights)
+                saver.save(name_best_model)
                 # Try to make the saved model more human-readable
                 #tf.saved_model.save(model.variables, name_best_model)
         else:
@@ -112,6 +113,8 @@ if __name__ == "__main__":
     channels_events = channels - channels_image
     folder_best_model = args.model_path
     name_best_model = os.path.join(folder_best_model,'best')
+    name_best_save_model = os.path.join(folder_best_model,'bestModelSave')
+    name_best_weights = os.path.join(folder_best_model, 'bestWeights')
     dataset_path = args.dataset
     loader = Loader.Loader(dataFolderPath=dataset_path, n_classes=n_classes, problemType='segmentation',
                            width=width, height=height, channels=channels_image, channels_events=channels_events)
