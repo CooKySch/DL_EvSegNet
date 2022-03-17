@@ -146,7 +146,7 @@ if __name__ == "__main__":
     restore_model = tf.train.Checkpoint(var_list=variables_to_restore)
 
     # restore if model saved and show number of params
-    restore_state(restore_model, name_best_model)
+    #restore_state(restore_model, name_best_model)
     model.load_weights(name_best_model)
     get_params(model)
 
