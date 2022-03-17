@@ -147,7 +147,7 @@ if __name__ == "__main__":
 
     # restore if model saved and show number of params
     restore_state(restore_model, name_best_model)
-    model = restore_model
+    model.load_weights(restore_model)
     get_params(model)
 
 
