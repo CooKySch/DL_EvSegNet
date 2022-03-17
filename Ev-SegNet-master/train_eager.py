@@ -67,9 +67,10 @@ def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None
             # save model if better
             if test_miou > best_miou:
                 best_miou = test_miou
-                saver.save(name_best_model)
+                model.save_weights(name_best_model.format(epoch))
+                #saver.save(name_best_model)
                 # Try to make the saved model more human-readable
-                tf.saved_model.save(model.variables, name_best_model)
+                #tf.saved_model.save(model.variables, name_best_model)
         else:
               saver.save(name_best_model)
 
