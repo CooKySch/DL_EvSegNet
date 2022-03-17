@@ -111,7 +111,7 @@ if __name__ == "__main__":
     channels_image = 0
     channels_events = channels - channels_image
     folder_best_model = args.model_path
-    name_best_model = os.path.join(folder_best_model,'checkpoint')
+    name_best_model = os.path.join(folder_best_model,'best')
     dataset_path = args.dataset
     loader = Loader.Loader(dataFolderPath=dataset_path, n_classes=n_classes, problemType='segmentation',
                            width=width, height=height, channels=channels_image, channels_events=channels_events)
@@ -146,7 +146,7 @@ if __name__ == "__main__":
     restore_model = tf.train.Checkpoint(var_list=variables_to_restore)
 
     print("Path of model: " + name_best_model + "\n")
-    latest = tf.train.latest_checkpoint(name_best_model)
+    latest = tf.train.latest_checkpoint(folder_best_model)
     print("Latest model: " + latest)
 
     # restore if model saved and show number of params
