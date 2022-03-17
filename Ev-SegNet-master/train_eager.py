@@ -22,7 +22,7 @@ def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None
     steps_per_epoch = int(training_samples / batch_size) + 1
     best_miou = 0
 
-    print("Number of epochs: " + str(epochs))
+    print("Number of epochs: " + str(epochs) + "\n")
 
     for epoch in tqdm(range(epochs), desc="Epochs"):  # for each epoch
         print("This should not be printed with 0 epochs")
