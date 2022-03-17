@@ -146,10 +146,11 @@ if __name__ == "__main__":
     restore_model = tf.train.Checkpoint(var_list=variables_to_restore)
 
     # restore if model saved and show number of params
-    #restore_state(restore_model, name_best_model)
-    model.load_weights(name_best_model)
+    print("Problem is post checkpoint")
+    restore_state(restore_model, name_best_model)
+    print("Post-restore state warning")
     get_params(model)
-
+    print("Post-get params state warning")
 
     train(loader=loader, model=model, epochs=epochs, batch_size=batch_size, augmenter='segmentation', lr=learning_rate,
           init_lr=lr, saver=saver_model, variables_to_optimize=variables_to_optimize, name_best_model=name_best_model,
