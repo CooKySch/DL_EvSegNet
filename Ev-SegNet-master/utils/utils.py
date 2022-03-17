@@ -25,7 +25,7 @@ def preprocess(x, mode='imagenet'):
         if 'imagenet' in mode:
             return tf.keras.applications.xception.preprocess_input(x)
         elif 'normalize' in mode:
-            return  x.astype(np.float32) / 127.5 - 1
+            return x.astype(np.float32) / 127.5 - 1
     else:
         return x
 

@@ -22,7 +22,10 @@ def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None
     steps_per_epoch = int(training_samples / batch_size) + 1
     best_miou = 0
 
+    print("Number of epochs: " + str(epochs))
+
     for epoch in tqdm(range(epochs), desc="Epochs"):  # for each epoch
+        print("This should not be printed with 0 epochs")
         lr_decay(lr, init_lr, 1e-9, epoch, epochs - 1)  # compute the new lr
         print('epoch: ' + str(epoch) + '. Learning rate: ' + str(lr.numpy()))
         for step in tqdm(range(steps_per_epoch), desc="Steps per Epoch"):  # for every batch
@@ -61,14 +64,16 @@ def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None
             print('Test miou: ' + str(test_miou))
             print('')
 
-            # save model if bet
+            # save model if better
             if test_miou > best_miou:
                 best_miou = test_miou
                 saver.save(name_best_model)
+                # Try to make the saved model more human-readable
+                tf.saved_model.save(model.variables, name_best_model)
         else:
               saver.save(name_best_model)
 
-        loader.suffle_segmentation()  # sheffle trainign set
+        loader.suffle_segmentation()  # shuffle training set
 
 
 if __name__ == "__main__":

@@ -464,7 +464,7 @@ def  get_neighbour(i, j, max_i, max_j):
 
 if __name__ == "__main__":
 
-    loader = Loader('/media/msrobot/discoGordo/Event-based/INIGO/dataset_our_codification', problemType='segmentation', n_classes=6, width=346, height=260,
+    loader = Loader('/content/DL_EvSegNet/Ev-SegNet-master/data/dataset_our_codification/', problemType='segmentation', n_classes=6, width=346, height=260,
                     median_frequency=0.00, channels=1, channels_events=6)
     # print(loader.median_frequency_exp())
     x, y, mask = loader.get_batch(size=6, augmenter='segmentation')
