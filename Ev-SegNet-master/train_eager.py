@@ -144,9 +144,9 @@ if __name__ == "__main__":
     saver_model = tf.train.Checkpoint(var_list=variables_to_save)
     restore_model = tf.train.Checkpoint(var_list=variables_to_restore)
 
-    print("Path of model: " + name_best_model)
+    print("Path of model: " + name_best_model + "\n")
     latest = tf.train.latest_checkpoint(name_best_model)
-    print(latest)
+    print("Latest model: " + latest)
 
     # restore if model saved and show number of params
     restore_state(restore_model, name_best_model)
