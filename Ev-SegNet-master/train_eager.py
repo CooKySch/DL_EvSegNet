@@ -145,15 +145,11 @@ if __name__ == "__main__":
     saver_model = tf.train.Checkpoint(var_list=variables_to_save)
     restore_model = tf.train.Checkpoint(var_list=variables_to_restore)
 
-    print("Path of model: " + folder_best_model + "\n")
-    latest = tf.train.latest_checkpoint(folder_best_model)
-    print("Latest model: " + latest)
-
     # restore if model saved and show number of params
     restore_state(restore_model, name_best_model)
-    print("Post-restore state warning")
+    model = restore_model
     get_params(model)
-    print("Post-get params state warning")
+
 
     train(loader=loader, model=model, epochs=epochs, batch_size=batch_size, augmenter='segmentation', lr=learning_rate,
           init_lr=lr, saver=saver_model, variables_to_optimize=variables_to_optimize, name_best_model=name_best_model,
