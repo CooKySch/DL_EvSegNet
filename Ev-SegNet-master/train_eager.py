@@ -36,9 +36,11 @@ def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None
                 y_, aux_y_ = model(x, training=True, aux_loss=True)  # get output of the model
 
                 # Rewrite https://www.tensorflow.org/api_docs/python/tf/compat/v1/losses/softmax_cross_entropy
-                loss_fn = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
-                loss = loss_fn(y_true=y, y_pred=y_, sample_weight=mask)  # compute loss
-                loss_aux = loss_fn(y_true=y, y_pred=aux_y_, sample_weight=mask)
+                #loss_fn = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
+                #loss = loss_fn(y_true=y, y_pred=y_, sample_weight=mask)  # compute loss
+                #loss_aux = loss_fn(y_true=y, y_pred=aux_y_, sample_weight=mask)
+                loss = tf.compat.v1.losses.softmax_cross_entropy(y, y_, weights=mask)  # compute loss
+                loss_aux = tf.compat.v1.losses.softmax_cross_entropy(y, aux_y_, weights=mask)  # compute loss
                 loss = 1*loss + 0.8*loss_aux
                 if show_loss:
                     print('Training loss: ' + str(loss.numpy()))
@@ -74,7 +76,7 @@ if __name__ == "__main__":
     start = time()
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", help="Dataset path", default='data/dataset_our_codification')
+    parser.add_argument("--dataset", help="Dataset path", default='data')
     parser.add_argument("--model_path", help="Model path", default='weights/model')
     parser.add_argument("--n_classes", help="number of classes to classify", default=6)
     parser.add_argument("--batch_size", help="batch size", default=8)
@@ -121,7 +123,8 @@ if __name__ == "__main__":
 
     # optimizer
     learning_rate = tf.Variable(lr)
-    optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+    # optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+    optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate)
 
     # Init models (optional, just for get_params function)
     init_model(model, input_shape=(batch_size, width, height, channels))
