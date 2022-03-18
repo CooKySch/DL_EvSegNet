@@ -69,10 +69,10 @@ def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None
             if test_miou > best_miou:
                 best_miou = test_miou
             # Try to make the saved model generally useful
-            model.save(name_best_model + str(epoch), save_format='tf')
-            print("Written savedmodel in tf to " + name_best_model + str(epoch))
+            model.save_weights(name_best_model + "model" + str(epoch), save_format='tf')
+            print("Written savedmodel in tf to " + name_best_model + model + str(epoch))
         else:
-            model.save(name_best_model + str(epoch), save_format='tf')
+            model.save_weights(name_best_model + "model" + str(epoch), save_format='tf')
             print("Written savedmodel in tf to " + name_best_model + str(epoch))
 
         loader.suffle_segmentation()  # shuffle training set
@@ -144,16 +144,19 @@ if __name__ == "__main__":
     model.summary()
     # If you want to load the model before training, e.g. restore a checkpoint of a session with less than 500 epochs,
     # uncomment the following lines
-    latest = tf.train.latest_checkpoint(name_best_model)
-    print(latest)
+    latest = tf.train.latest_checkpoint(folder_best_model)
+    model.load_weights(latest)
+    print("Model loaded")
+
+    last_epoch = int(latest.split("myBestmodel")[1])
+    print(last_epoch)
+    epochs = epochs-last_epoch
 
     train(loader=loader, model=model, epochs=epochs, batch_size=batch_size, augmenter='segmentation', lr=learning_rate,
           init_lr=lr, variables_to_optimize=variables_to_optimize, evaluation=True, preprocess_mode=None)
 
     # Test best model
     print('Testing model')
-    model.summary()
-    model.load_weights(name_best_model)
     model.summary()
 
     test_acc, test_miou = get_metrics(loader, model, loader.n_classes, train=False, flip_inference=True, scales=[1, 0.75, 1.5],
