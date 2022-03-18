@@ -59,9 +59,7 @@ class Loader:
 
         print('Structuring test and train files...')
         self.test_list = [file for file in files if '/test/' in file]
-        print(self.test_list)
         self.train_list = [file for file in files if '/train/' in file]
-        print(self.train_list)
         if other:
             self.test_list = [file for file in files if '/other/' in file]
 
