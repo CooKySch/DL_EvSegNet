@@ -68,12 +68,11 @@ def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None
             # save model if better
             if test_miou > best_miou:
                 best_miou = test_miou
-                # Try to make the saved model generally useful
-                model.save(os.path.join(name_best_model, str(epoch)), save_format='tf')
-                print("Written savedmodel in tf to " + name_best_model + str(epoch))
+            # Try to make the saved model generally useful
+            model.save(name_best_model + str(epoch), save_format='tf')
+            print("Written savedmodel in tf to " + name_best_model + str(epoch))
         else:
-
-            model.save(os.path.join(name_best_model, str(epoch)), save_format='tf')
+            model.save(name_best_model + str(epoch), save_format='tf')
             print("Written savedmodel in tf to " + name_best_model + str(epoch))
 
         loader.suffle_segmentation()  # shuffle training set
@@ -113,8 +112,7 @@ if __name__ == "__main__":
     channels_image = 0
     channels_events = channels - channels_image
     folder_best_model = args.model_path
-    name_best_model = os.path.join(folder_best_model, 'best')
-
+    name_best_model = os.path.join(folder_best_model, 'myBest')
     dataset_path = args.dataset
     loader = Loader.Loader(dataFolderPath=dataset_path, n_classes=n_classes, problemType='segmentation',
                            width=width, height=height, channels=channels_image, channels_events=channels_events)
@@ -144,6 +142,10 @@ if __name__ == "__main__":
     # restore if model saved and show number of params
     get_params(model)
     model.summary()
+    # If you want to load the model before training, e.g. restore a checkpoint of a session with less than 500 epochs,
+    # uncomment the following lines
+    latest = tf.train.latest_checkpoint(name_best_model)
+    print(latest)
 
     train(loader=loader, model=model, epochs=epochs, batch_size=batch_size, augmenter='segmentation', lr=learning_rate,
           init_lr=lr, variables_to_optimize=variables_to_optimize, evaluation=True, preprocess_mode=None)
