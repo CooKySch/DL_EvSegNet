@@ -25,7 +25,6 @@ def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None
     print("Number of epochs: " + str(epochs) + "\n")
 
     for epoch in tqdm(range(epochs), desc="Epochs"):  # for each epoch
-        print("This should not be printed with 0 epochs")
         lr_decay(lr, init_lr, 1e-9, epoch, epochs - 1)  # compute the new lr
         print('epoch: ' + str(epoch) + '. Learning rate: ' + str(lr.numpy()))
         for step in tqdm(range(steps_per_epoch), desc="Steps per Epoch"):  # for every batch
@@ -64,16 +63,23 @@ def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None
             print('Test miou: ' + str(test_miou))
             print('')
 
+            # Log the results to TensorBoard
+
             # save model if better
             if test_miou > best_miou:
                 best_miou = test_miou
-                model.save(name_best_save_model)
-                model.save_weights(name_best_weights)
-                saver.save(name_best_model)
+                try:
+                    model.save_weights(name_best_weights)
+                    model.save(name_best_save_model)
+                except Exception as e:
+                    print("Model was not saved")
+                #saver.save(name_best_model)
                 # Try to make the saved model more human-readable
                 #tf.saved_model.save(model.variables, name_best_model)
         else:
-              saver.save(name_best_model)
+            model.save(name_best_save_model)
+            model.save_weights(name_best_weights)
+            #saver.save(name_best_model)
 
         loader.suffle_segmentation()  # shuffle training set
 
@@ -104,16 +110,16 @@ if __name__ == "__main__":
     n_classes = int(args.n_classes)
     batch_size = int(args.batch_size)
     epochs = int(args.epochs)
-    width =  int(args.width)
-    height =  int(args.height)
+    width = int(args.width)
+    height = int(args.height)
     lr = float(args.lr)
 
-    channels = 6 # input of 6 channels
+    channels = 6  # input of 6 channels
     channels_image = 0
     channels_events = channels - channels_image
     folder_best_model = args.model_path
-    name_best_model = os.path.join(folder_best_model,'best')
-    name_best_save_model = os.path.join(folder_best_model,'bestModelSave')
+    name_best_model = os.path.join(folder_best_model, 'best')
+    name_best_save_model = os.path.join(folder_best_model, 'bestModelSave')
     name_best_weights = os.path.join(folder_best_model, 'bestWeights')
     dataset_path = args.dataset
     loader = Loader.Loader(dataFolderPath=dataset_path, n_classes=n_classes, problemType='segmentation',
@@ -145,15 +151,12 @@ if __name__ == "__main__":
     variables_to_optimize = model.variables
 
     # Init saver. can use also ckpt = tf.Checkpoint((model=model, optimizer=optimizer,learning_rate=learning_rate, global_step=global_step)
-    saver_model = tf.train.Checkpoint(var_list=variables_to_save)
-    restore_model = tf.train.Checkpoint(var_list=variables_to_restore)
+    saver_model = tf.compat.v1.train.Saver(var_list=variables_to_save)
+    restore_model = tf.compat.v1.train.Saver(var_list=variables_to_restore)
 
     # restore if model saved and show number of params
-    print("Problem is post checkpoint")
     restore_state(restore_model, name_best_model)
-    print("Post-restore state warning")
     get_params(model)
-    print("Post-get params state warning")
 
     train(loader=loader, model=model, epochs=epochs, batch_size=batch_size, augmenter='segmentation', lr=learning_rate,
           init_lr=lr, saver=saver_model, variables_to_optimize=variables_to_optimize, name_best_model=name_best_model,
@@ -161,12 +164,10 @@ if __name__ == "__main__":
 
     # Test best model
     print('Testing model')
+    checkpoint = tf.train.Checkpoint(model)
+    checkpoint.restore(name_best_model).expect_partial()
 
     test_acc, test_miou = get_metrics(loader, model, loader.n_classes, train=False, flip_inference=True, scales=[1, 0.75, 1.5],
                                       write_images=False, preprocess_mode=None)
     print('Test accuracy: ' + str(test_acc.numpy()))
     print('Test miou: ' + str(test_miou))
-
-    #train_acc, train_miou = get_metrics(loader, model, loader.n_classes, train=True, preprocess_mode=preprocess_mode)
-    #print('Train accuracy: ' + str(train_acc.numpy()))
-    #print('Train miou: ' + str(train_miou))
