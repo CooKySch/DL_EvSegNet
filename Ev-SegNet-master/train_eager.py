@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 import os
 import nets.Network as Segception
+# Change depending on os
 import utils.Loader as Loader
 from utils.utils import get_params, preprocess, lr_decay, convert_to_tensors, restore_state, init_model, get_metrics
 import argparse
@@ -16,8 +17,7 @@ np.random.seed(7)
 
 
 # Trains the model for certains epochs on a dataset
-def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None, lr=None, init_lr=2e-4,
-          saver=None, variables_to_optimize=None, evaluation=True, name_best_model = 'weights/best', preprocess_mode=None):
+def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None, lr=None, init_lr=2e-4, variables_to_optimize=None, evaluation=True, preprocess_mode=None):
     training_samples = len(loader.image_train_list)
     steps_per_epoch = int(training_samples / batch_size) + 1
     best_miou = 0
@@ -68,18 +68,22 @@ def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None
             # save model if better
             if test_miou > best_miou:
                 best_miou = test_miou
-                try:
-                    model.save_weights(name_best_weights)
-                    model.save(name_best_save_model)
-                except Exception as e:
-                    print("Model was not saved")
-                #saver.save(name_best_model)
                 # Try to make the saved model more human-readable
-                #tf.saved_model.save(model.variables, name_best_model)
+            checkpoint = tf.train.Checkpoint(model)
+            checkpoint.save(os.path.join(name_ckpt, str(epoch)))
+            print("Written checkpoint to " + os.path.join(name_ckpt, str(epoch)))
+            model.save_weights(os.path.join(name_best_weights, str(epoch)))
+            print("Written checkpoint to " + os.path.join(name_best_weights, str(epoch)))
+            model.save(os.path.join(name_best_model, str(epoch)), save_format='tf')
+            print("Written savedmodel in h5 to " + os.path.join(name_best_weights, str(epoch)))
         else:
-            model.save(name_best_save_model)
-            model.save_weights(name_best_weights)
-            #saver.save(name_best_model)
+            checkpoint = tf.train.Checkpoint(model)
+            checkpoint.save(os.path.join(name_ckpt, str(epoch)))
+            print("Written checkpoint to " + os.path.join(name_ckpt, str(epoch)))
+            model.save_weights(os.path.join(name_best_weights, str(epoch)))
+            print("Written checkpoint to " + os.path.join(name_best_weights, str(epoch)))
+            model.save(os.path.join(name_best_model, str(epoch)), save_format='tf')
+            print("Written savedModel in h5 to " + os.path.join(name_best_weights, str(epoch)))
 
         loader.suffle_segmentation()  # shuffle training set
 
@@ -119,8 +123,13 @@ if __name__ == "__main__":
     channels_events = channels - channels_image
     folder_best_model = args.model_path
     name_best_model = os.path.join(folder_best_model, 'best')
-    name_best_save_model = os.path.join(folder_best_model, 'bestModelSave')
-    name_best_weights = os.path.join(folder_best_model, 'bestWeights')
+
+    # Added by Connor for saving
+    name_best_weights = folder_best_model + '/bestWeights'
+    print(name_best_weights)
+    name_ckpt = folder_best_model + '/ckpt'
+    # name_best_savedmodel = os.path.join(folder_best_model, 'savedModel')
+
     dataset_path = args.dataset
     loader = Loader.Loader(dataFolderPath=dataset_path, n_classes=n_classes, problemType='segmentation',
                            width=width, height=height, channels=channels_image, channels_events=channels_events)
@@ -141,31 +150,24 @@ if __name__ == "__main__":
     # optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
     optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate)
 
+    variables_to_optimize = model.variables
     # Init models (optional, just for get_params function)
     init_model(model, input_shape=(batch_size, width, height, channels))
 
     print("SUCCESS: Initialized Model")
-
-    variables_to_restore = model.variables #[x for x in model.variables if 'block1_conv1' not in x.name]
-    variables_to_save = model.variables
-    variables_to_optimize = model.variables
-
-    # Init saver. can use also ckpt = tf.Checkpoint((model=model, optimizer=optimizer,learning_rate=learning_rate, global_step=global_step)
-    saver_model = tf.compat.v1.train.Saver(var_list=variables_to_save)
-    restore_model = tf.compat.v1.train.Saver(var_list=variables_to_restore)
-
     # restore if model saved and show number of params
-    restore_state(restore_model, name_best_model)
+
+
     get_params(model)
 
     train(loader=loader, model=model, epochs=epochs, batch_size=batch_size, augmenter='segmentation', lr=learning_rate,
-          init_lr=lr, saver=saver_model, variables_to_optimize=variables_to_optimize, name_best_model=name_best_model,
-          evaluation=True, preprocess_mode=None)
+          init_lr=lr, variables_to_optimize=variables_to_optimize, evaluation=True, preprocess_mode=None)
 
     # Test best model
     print('Testing model')
-    checkpoint = tf.train.Checkpoint(model)
-    checkpoint.restore(name_best_model).expect_partial()
+    model.summary()
+    model.build(input_shape=(batch_size, width, height, channels))
+    model.load_weights(name_best_weights)
 
     test_acc, test_miou = get_metrics(loader, model, loader.n_classes, train=False, flip_inference=True, scales=[1, 0.75, 1.5],
                                       write_images=False, preprocess_mode=None)
