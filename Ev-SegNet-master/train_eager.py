@@ -3,7 +3,7 @@ import tensorflow as tf
 import os
 import nets.Network as Segception
 # Change depending on os
-import utils.Loader as Loader
+import utils.Loader_win as Loader
 from utils.utils import get_params, preprocess, lr_decay, convert_to_tensors, restore_state, init_model, get_metrics
 import argparse
 from time import time
@@ -26,7 +26,7 @@ def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None
 
     for epoch in tqdm(range(epochs), desc="Epochs"):  # for each epoch
         lr_decay(lr, init_lr, 1e-9, last_epoch, epochs - 1)  # compute the new lr
-        print('epoch: ' + str(epoch) + '. Learning rate: ' + str(lr.numpy()))
+        print('epoch: ' + str(epoch + last_epoch) + '. Learning rate: ' + str(lr.numpy()))
         for step in tqdm(range(steps_per_epoch), desc="Steps per Epoch"):  # for every batch
             with tf.GradientTape() as g:
                 # get batch
@@ -152,7 +152,7 @@ if __name__ == "__main__":
         print(last_epoch)
         epochs = epochs-last_epoch
     except Exception as e:
-        last_epoch = 0 
+        last_epoch = 0
         print("Last model could not be found; starting from scratch")
 
     train(loader=loader, model=model, epochs=epochs, batch_size=batch_size, augmenter='segmentation', lr=learning_rate,
