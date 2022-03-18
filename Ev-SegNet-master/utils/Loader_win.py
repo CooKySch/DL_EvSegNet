@@ -5,7 +5,11 @@ import tensorflow as tf
 from tensorflow.keras.utils import to_categorical
 import glob
 import cv2
-from utils.augmenters import get_augmenter
+
+try:
+    from utils.augmenters import get_augmenter
+except ModuleNotFoundError:
+    from augmenters import get_augmenter
 
 np.random.seed(7)
 problemTypes = ['classification', 'segmentation']
@@ -13,7 +17,7 @@ problemTypes = ['classification', 'segmentation']
 
 class Loader:
     def __init__(self, dataFolderPath, width=224, height=224, channels=3, n_classes=21, problemType='segmentation',
-                 median_frequency=0, other=False, channels_events=0):
+                 median_frequency=0, other=False, channels_events=0, percentage_data_used=1.0):
         self.dataFolderPath = dataFolderPath
         self.height = height
         self.channels_events = channels_events
@@ -125,9 +129,20 @@ class Loader:
             self.events_train_list.sort()
             self.events_test_list.sort()
 
+            # Select part of data to use later on. Do now when everything is aligned.
+            final_ind_train = max(0, min(len(self.image_train_list), int(percentage_data_used * len(self.image_train_list))))
+            final_ind_test = max(0, min(len(self.image_test_list), int(percentage_data_used * len(self.image_test_list))))
+            self.label_test_list = self.label_test_list[:final_ind_test]
+            self.image_test_list = self.image_test_list[:final_ind_test]
+            self.label_train_list = self.label_train_list[:final_ind_train]
+            self.image_train_list = self.image_train_list[:final_ind_train]
+            self.events_train_list = self.events_train_list[:final_ind_train]
+            self.events_test_list = self.events_test_list[:final_ind_test]
+
             # Shuffle train
             self.suffle_segmentation()
 
+            print(f"{final_ind_train=}, {final_ind_test=}")
             print('Loaded ' + str(len(self.image_train_list)) + ' training samples')
             print('Loaded ' + str(len(self.image_test_list)) + ' testing samples')
             self.n_classes = n_classes
@@ -466,7 +481,12 @@ def get_neighbour(i, j, max_i, max_j):
 
 if __name__ == "__main__":
 
-    loader = Loader('/content/DL_EvSegNet/Ev-SegNet-master/data/dataset_our_codification/', problemType='segmentation',
+    # loader = Loader('/content/DL_EvSegNet/Ev-SegNet-master/data/dataset_our_codification/', problemType='segmentation',
+    #                 n_classes=6, width=346, height=260,
+    #                 median_frequency=0.00, channels=1, channels_events=6)
+
+    
+    loader = Loader('C:\\Users\\fabia\\Documents\\Master\\Deep Learning\\Project\\DL_EvSegNet\\Ev-SegNet-master\\data', problemType='segmentation',
                     n_classes=6, width=346, height=260,
                     median_frequency=0.00, channels=1, channels_events=6)
     # print(loader.median_frequency_exp())
