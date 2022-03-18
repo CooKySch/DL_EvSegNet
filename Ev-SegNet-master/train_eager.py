@@ -25,7 +25,7 @@ def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None
     print("Number of epochs: " + str(epochs) + "\n")
 
     for epoch in tqdm(range(epochs), desc="Epochs"):  # for each epoch
-        lr_decay(lr, init_lr, 1e-9, epoch, epochs - 1)  # compute the new lr
+        lr_decay(lr, init_lr, 1e-9, last_epoch, epochs - 1)  # compute the new lr
         print('epoch: ' + str(epoch) + '. Learning rate: ' + str(lr.numpy()))
         for step in tqdm(range(steps_per_epoch), desc="Steps per Epoch"):  # for every batch
             with tf.GradientTape() as g:
@@ -70,10 +70,10 @@ def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None
                 best_miou = test_miou
             # Try to make the saved model generally useful
             model.save_weights(name_best_model + "model" + str(epoch), save_format='tf')
-            print("Written savedmodel in tf to " + name_best_model + model + str(epoch))
+            print("Written savedmodel in tf to " + name_best_model + "model" + str(epoch))
         else:
             model.save_weights(name_best_model + "model" + str(epoch), save_format='tf')
-            print("Written savedmodel in tf to " + name_best_model + str(epoch))
+            print("Written savedmodel in tf to " + name_best_model + "model" + str(epoch))
 
         loader.suffle_segmentation()  # shuffle training set
 
@@ -152,6 +152,7 @@ if __name__ == "__main__":
         print(last_epoch)
         epochs = epochs-last_epoch
     except Exception as e:
+        last_epoch = 0 
         print("Last model could not be found; starting from scratch")
 
     train(loader=loader, model=model, epochs=epochs, batch_size=batch_size, augmenter='segmentation', lr=learning_rate,
