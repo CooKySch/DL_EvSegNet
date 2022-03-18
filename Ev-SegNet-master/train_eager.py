@@ -144,13 +144,15 @@ if __name__ == "__main__":
     model.summary()
     # If you want to load the model before training, e.g. restore a checkpoint of a session with less than 500 epochs,
     # uncomment the following lines
-    latest = tf.train.latest_checkpoint(folder_best_model)
-    model.load_weights(latest)
-    print("Model loaded")
-
-    last_epoch = int(latest.split("myBestmodel")[1])
-    print(last_epoch)
-    epochs = epochs-last_epoch
+    try:
+        latest = tf.train.latest_checkpoint(folder_best_model)
+        model.load_weights(latest)
+        print("Model loaded")
+        last_epoch = int(latest.split("myBestmodel")[1])
+        print(last_epoch)
+        epochs = epochs-last_epoch
+    except Exception as e:
+        print("Last model could not be found; starting from scratch")
 
     train(loader=loader, model=model, epochs=epochs, batch_size=batch_size, augmenter='segmentation', lr=learning_rate,
           init_lr=lr, variables_to_optimize=variables_to_optimize, evaluation=True, preprocess_mode=None)
