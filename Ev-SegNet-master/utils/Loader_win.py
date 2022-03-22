@@ -66,14 +66,14 @@ class Loader:
         self.train_list = []
         for file in files:
             if '\\train\\' in file:
-                if int(file.split(".")[-2].split("_")[-1]) <= 300:
-                    self.train_list.append(file)
+                self.train_list.append(file)
             if other:
                 if '\\other\\' in file:
                     self.test_list.append(file)
             else:
                 if '\\test\\' in file:
                     self.test_list.append(file)
+
 
         # Check problem type
         if problemType in problemTypes:
