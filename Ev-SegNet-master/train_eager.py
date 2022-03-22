@@ -1,13 +1,19 @@
+import platform
+
 import numpy as np
 import tensorflow as tf
 import os
 import nets.Network as Segception
-# Change depending on os
-import utils.Loader_win as Loader
 from utils.utils import get_params, preprocess, lr_decay, convert_to_tensors, restore_state, init_model, get_metrics
 import argparse
 from time import time
 from tqdm import tqdm
+
+# Change depending on os
+if platform.system() == 'Windows':
+    import utils.Loader_win as Loader
+else:
+    import utils.Loader as Loader
 
 # enable eager mode
 # In TF 2 eager execution is enabled by default!!
