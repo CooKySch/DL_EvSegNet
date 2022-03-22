@@ -98,6 +98,7 @@ if __name__ == "__main__":
     parser.add_argument("--height", help="number of epochs to train", default=224)
     parser.add_argument("--lr", help="init learning rate", default=1e-3)
     parser.add_argument("--n_gpu", help="number of the gpu", default=0)
+    parser.add_argument("--dataset_size", help="portion of the dataset used, e.g. 0.5 is 50%", default=0.5)
     args = parser.parse_args()
 
     n_gpu = int(args.n_gpu)
@@ -120,8 +121,8 @@ if __name__ == "__main__":
     folder_best_model = args.model_path
     name_best_model = os.path.join(folder_best_model, 'myBest')
     dataset_path = args.dataset
-    loader = Loader.Loader(dataFolderPath=dataset_path, n_classes=n_classes, problemType='segmentation',
-                           width=width, height=height, channels=channels_image, channels_events=channels_events, percentage_data_used=0.5)
+    loader = Loader.Loader(dataFolderPath=dataset_path, n_classes=n_classes, problemType='segmentation', width=width,
+                           height=height, channels=channels_image, channels_events=channels_events, percentage_data_used=0.5)
 
     data_load_time = time()
     print("Data has loaded in ", (data_load_time-start), 'seconds')
