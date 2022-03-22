@@ -121,7 +121,7 @@ if __name__ == "__main__":
     name_best_model = os.path.join(folder_best_model, 'myBest')
     dataset_path = args.dataset
     loader = Loader.Loader(dataFolderPath=dataset_path, n_classes=n_classes, problemType='segmentation',
-                           width=width, height=height, channels=channels_image, channels_events=channels_events)
+                           width=width, height=height, channels=channels_image, channels_events=channels_events, percentage_data_used=0.5)
 
     data_load_time = time()
     print("Data has loaded in ", (data_load_time-start), 'seconds')
