@@ -170,10 +170,8 @@ if __name__ == "__main__":
     try:
         latest = tf.train.latest_checkpoint(folder_best_model)
         last_epoch = int(latest.split("myBestmodel")[1]) + 1
-        epochs = epochs-last_epoch
         model.load_weights(latest)
         print("Model " + last_epoch + "loaded")
-
     except Exception as e:
         last_epoch = 0
         print("Last model could not be found; starting from scratch")
