@@ -87,7 +87,7 @@ def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None
             print("Written savedmodel in tf to " + name_best_model + "model" + str(epoch))
         if platform.system() != "Windows":
             subprocess.run(["zip", "-r", "/content/drive/MyDrive/Universiteit/Deep_Learning/logs.zip", "/content/DL_EvSegNet/Ev-SegNet-master/logs"])
-            subprocess.run(["zip", "-r", "/content/drive/MyDrive/Universiteit/Deep_Learning/model.zip", "/content/DL_EvSegNet/Ev-SegNet-master/weights/model.zip"])
+            subprocess.run(["zip", "-r", "/content/drive/MyDrive/Universiteit/Deep_Learning/model.zip", "/content/DL_EvSegNet/Ev-SegNet-master/weights/model"])
 
 
         loader.suffle_segmentation()  # shuffle training set
