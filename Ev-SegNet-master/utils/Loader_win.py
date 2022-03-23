@@ -28,6 +28,7 @@ class Loader:
         self.index_test = 0  # indexes for iterating while testing
         self.median_frequency_soft = median_frequency  # softener value for the median frequency balancing (if median_frequency==0, nothing is applied, if median_frequency==1, the common formula is applied)
 
+
         print('Reading files...')
         '''
         possible structures:
@@ -146,6 +147,7 @@ class Loader:
             print(f"{final_ind_train=}, {final_ind_test=}")
             print('Loaded ' + str(len(self.image_train_list)) + ' training samples')
             print('Loaded ' + str(len(self.image_test_list)) + ' testing samples')
+            print('Loaded ' + str(percentage_data_used * 100) + ' percent of the dataset')
             self.n_classes = n_classes
 
             if self.median_frequency_soft != 0:
