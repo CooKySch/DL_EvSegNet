@@ -10,6 +10,7 @@ import argparse
 from time import time
 from tqdm import tqdm
 from google.colab import drive
+drive.mount('/content/drive')
 
 # Change depending on os
 if platform.system() == 'Windows':
@@ -32,7 +33,7 @@ def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None
 
     print("Number of epochs: " + str(epochs) + "\n")
 
-    for epoch in tqdm(range(epochs), desc="Epochs"):  # for each epoch
+    for epoch in tqdm(range(epochs-last_epoch), desc="Epochs"):  # for each epoch
         lr_decay(lr, init_lr, 1e-9, last_epoch + epoch, epochs)  # compute the new lr
         print('epoch: ' + str(epoch + last_epoch) + '. Learning rate: ' + str(lr.numpy()))
         for step in tqdm(range(steps_per_epoch), desc="Steps per Epoch"):  # for every batch
