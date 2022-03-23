@@ -33,7 +33,7 @@ def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None
     print("Number of epochs: " + str(epochs) + "\n")
 
     for epoch in tqdm(range(epochs), desc="Epochs"):  # for each epoch
-        lr_decay(lr, init_lr, 1e-9, last_epoch, epochs - 1)  # compute the new lr
+        lr_decay(lr, init_lr, 1e-9, last_epoch, epochs)  # compute the new lr
         print('epoch: ' + str(epoch + last_epoch) + '. Learning rate: ' + str(lr.numpy()))
         for step in tqdm(range(steps_per_epoch), desc="Steps per Epoch"):  # for every batch
             with tf.GradientTape() as g:
@@ -169,7 +169,7 @@ if __name__ == "__main__":
     # uncomment the following lines
     try:
         latest = tf.train.latest_checkpoint(folder_best_model)
-        last_epoch = int(latest.split("myBestmodel")[1])
+        last_epoch = int(latest.split("myBestmodel")[1]) + 1
         epochs = epochs-last_epoch
         model.load_weights(latest)
         print("Model " + last_epoch + "loaded")
