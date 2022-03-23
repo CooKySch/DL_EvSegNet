@@ -137,7 +137,6 @@ def get_metrics(loader, model, n_classes, train=True, flip_inference=False, scal
     else:
         print("Getting metrics from image_test_list")
         samples = len(loader.image_test_list)
-        samples = 10
 
     for step in tqdm(range(samples)):  # for every batch
         x, y, mask = loader.get_batch(size=1, train=train, augmenter=False)
