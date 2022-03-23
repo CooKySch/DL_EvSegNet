@@ -9,8 +9,7 @@ from utils.utils import get_params, preprocess, lr_decay, convert_to_tensors, re
 import argparse
 from time import time
 from tqdm import tqdm
-from google.colab import drive
-drive.mount('/content/drive')
+
 
 # Change depending on os
 if platform.system() == 'Windows':
