@@ -76,15 +76,15 @@ def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None
                 best_miou = test_miou
             # Log the results
             with summary_writer.as_default():
-                tf.summary.scalar('Training loss ', loss.numpy(), step=epoch)
-                tf.summary.scalar('Test accuracy ', test_acc.numpy(), step=epoch)
-                tf.summary.scalar('Test mIoU ', test_miou, step=epoch)
+                tf.summary.scalar('Training loss ', loss.numpy(), step=epoch+last_epoch)
+                tf.summary.scalar('Test accuracy ', test_acc.numpy(), step=epoch+last_epoch)
+                tf.summary.scalar('Test mIoU ', test_miou, step=epoch+last_epoch)
             # Try to make the saved model generally useful
-            model.save_weights(name_best_model + "model" + str(epoch), save_format='tf')
-            print("Written savedmodel in tf to " + name_best_model + "model" + str(epoch))
+            model.save_weights(name_best_model + "model" + str(epoch + last_epoch), save_format='tf')
+            print("Written savedmodel in tf to " + name_best_model + "model" + str(epoch + last_epoch))
         else:
             model.save_weights(name_best_model + "model" + str(epoch), save_format='tf')
-            print("Written savedmodel in tf to " + name_best_model + "model" + str(epoch))
+            print("Written savedmodel in tf to " + name_best_model + "model" + str(epoch + last_epoch))
         if platform.system() != "Windows":
             subprocess.run(["zip", "-r", "/content/drive/MyDrive/Universiteit/Deep_Learning/logs.zip", "/content/DL_EvSegNet/Ev-SegNet-master/logs"])
             subprocess.run(["zip", "-r", "/content/drive/MyDrive/Universiteit/Deep_Learning/model.zip", "/content/DL_EvSegNet/Ev-SegNet-master/weights/model"])
