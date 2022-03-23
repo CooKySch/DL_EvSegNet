@@ -134,6 +134,7 @@ class Loader:
 
             print('Loaded ' + str(len(self.image_train_list)) + ' training samples')
             print('Loaded ' + str(len(self.image_test_list)) + ' testing samples')
+            print('Loaded ' + str(percentage_data_used*100) + '% of the dataset')
             self.n_classes = n_classes
 
             if self.median_frequency_soft != 0:
