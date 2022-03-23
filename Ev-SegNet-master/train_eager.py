@@ -1,4 +1,5 @@
 import platform
+import subprocess
 
 import numpy as np
 import tensorflow as tf
@@ -86,8 +87,8 @@ def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None
             model.save_weights(name_best_model + "model" + str(epoch), save_format='tf')
             print("Written savedmodel in tf to " + name_best_model + "model" + str(epoch))
         if platform.system() != "Windows":
-            !zip -r "logs.zip" "/content/DL_EvSegNet/Ev-SegNet-master/logs" "/content/drive/MyDrive/Universiteit/Deep_Learning/logs"
-            !zip -r "model.zip" "/content/DL_EvSegNet/Ev-SegNet-master/weights/model" "/content/drive/MyDrive/Universiteit/Deep_Learning/model"
+            subprocess.run(["zip", "-r", "logs.zip", "/content/DL_EvSegNet/Ev-SegNet-master/logs", "/content/drive/MyDrive/Universiteit/Deep_Learning/logs"])
+            subprocess.run(["zip", "-r", "model.zip" "/content/DL_EvSegNet/Ev-SegNet-master/weights/model", "/content/drive/MyDrive/Universiteit/Deep_Learning/model"])
 
 
         loader.suffle_segmentation()  # shuffle training set
