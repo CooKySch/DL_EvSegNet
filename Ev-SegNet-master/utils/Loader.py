@@ -6,6 +6,7 @@ from tensorflow.keras.utils import to_categorical
 import glob
 import cv2
 from utils.augmenters import get_augmenter
+from numpy.random import default_rng
 
 np.random.seed(7)
 problemTypes = ['classification', 'segmentation']
@@ -13,7 +14,7 @@ problemTypes = ['classification', 'segmentation']
 
 class Loader:
     def __init__(self, dataFolderPath, width=224, height=224, channels=3, n_classes=21, problemType='segmentation',
-                 median_frequency=0, other=False, channels_events=0, percentage_data_used=1.0):
+                 median_frequency=0, other=False, channels_events=0, percentage_data_used=1.0, check_class_ratio=False):
         self.dataFolderPath = dataFolderPath
         self.height = height
         self.channels_events = channels_events
@@ -119,15 +120,27 @@ class Loader:
             self.events_train_list.sort()
             self.events_test_list.sort()
 
-            # Select part of data to use later on. Do now when everything is aligned.
-            final_ind_train = max(0, min(len(self.image_train_list), int(percentage_data_used * len(self.image_train_list))))
-            final_ind_test = max(0, min(len(self.image_test_list), int(percentage_data_used * len(self.image_test_list))))
-            self.label_test_list = self.label_test_list[:final_ind_test]
-            self.image_test_list = self.image_test_list[:final_ind_test]
-            self.label_train_list = self.label_train_list[:final_ind_train]
-            self.image_train_list = self.image_train_list[:final_ind_train]
-            self.events_train_list = self.events_train_list[:final_ind_train]
-            self.events_test_list = self.events_test_list[:final_ind_test]
+            if check_class_ratio:
+                train_set_ratio_before = get_class_ratio(self.label_train_list)
+                test_set_ratio_before = get_class_ratio(self.label_test_list)
+
+            # Select part of data to use later on. Do now when everything is sorted.
+            rng = default_rng()
+            train_ind = rng.choice(len(self.image_train_list), size=int(percentage_data_used * len(self.image_train_list)), replace=False)
+            test_ind  = rng.choice(len(self.image_test_list),  size=int(percentage_data_used * len(self.image_test_list)),  replace=False)
+
+            self.label_train_list = [self.label_train_list[i] for i in train_ind]
+            self.image_train_list = [self.image_train_list[i] for i in train_ind]
+            self.events_train_list = [self.events_train_list[i] for i in train_ind]
+            self.label_test_list = [self.label_test_list[i] for i in test_ind]
+            self.image_test_list = [self.image_test_list[i] for i in test_ind]
+            self.events_test_list = [self.events_test_list[i] for i in test_ind]
+
+            if check_class_ratio:
+                train_set_ratio_after = get_class_ratio(self.label_train_list)
+                test_set_ratio_after = get_class_ratio(self.label_test_list)
+                print(f"Train set class ratio before: {train_set_ratio_before} \nTrain set class ratio after:  {train_set_ratio_after}")
+                print(f"Test set class ratio before: {test_set_ratio_before} \nTest set class ratio after:  {test_set_ratio_after}")
 
             # Shuffle train
             self.suffle_segmentation()
@@ -453,6 +466,14 @@ class Loader:
         '''
         return event_image
 
+def get_class_ratio(label_list):
+    """
+    Return the ratio of occurunces of a class in the labels.
+    """
+    label_images = [cv2.imread(label, 0).reshape(-1) for label in label_list]
+    label_bincount = np.asarray([[x in y for x in range(6)] for y in label_images], dtype=np.int8).sum(axis=0)
+
+    return label_bincount / len(label_list)
 
 def  get_neighbour(i, j, max_i, max_j):
     random_number= np.random.random()

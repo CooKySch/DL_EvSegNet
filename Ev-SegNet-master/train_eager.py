@@ -110,6 +110,9 @@ if __name__ == "__main__":
     parser.add_argument("--percentage_data_used", help="portion of the dataset used, e.g. 0.5 is 50%", default=1.0)
     parser.add_argument("--log_dir", help="where the tensorboard logs are stored", default='logs/')
 
+    # WIP
+    parser.add_argument("--check_class_ratio", help="check ratio of classes after shrinking data set", choices=('True','False'), default='False')
+
     args = parser.parse_args()
 
     n_gpu = int(args.n_gpu)
@@ -125,6 +128,7 @@ if __name__ == "__main__":
     height = int(args.height)
     lr = float(args.lr)
     percentage_data_used = float(args.percentage_data_used)
+    check_class_ratio = args.check_class_ratio == 'True'
 
     channels = 6  # input of 6 channels
     channels_image = 0
@@ -134,7 +138,7 @@ if __name__ == "__main__":
     name_best_model = os.path.join(folder_best_model, 'myBest')
     dataset_path = args.dataset
     loader = Loader.Loader(dataFolderPath=dataset_path, n_classes=n_classes, problemType='segmentation', width=width,
-                           height=height, channels=channels_image, channels_events=channels_events, percentage_data_used=percentage_data_used)
+                           height=height, channels=channels_image, channels_events=channels_events, percentage_data_used=percentage_data_used, check_class_ratio=check_class_ratio)
 
     data_load_time = time()
     print("Data has loaded in ", (data_load_time-start), 'seconds')
