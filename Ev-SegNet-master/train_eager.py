@@ -1,13 +1,21 @@
+import platform
+import subprocess
+
 import numpy as np
 import tensorflow as tf
 import os
 import nets.Network as Segception
-# Change depending on os
-import utils.Loader_win as Loader
 from utils.utils import get_params, preprocess, lr_decay, convert_to_tensors, restore_state, init_model, get_metrics
 import argparse
 from time import time
 from tqdm import tqdm
+
+
+# Change depending on os
+if platform.system() == 'Windows':
+    import utils.Loader_win as Loader
+else:
+    import utils.Loader as Loader
 
 # enable eager mode
 # In TF 2 eager execution is enabled by default!!
@@ -24,8 +32,8 @@ def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None
 
     print("Number of epochs: " + str(epochs) + "\n")
 
-    for epoch in tqdm(range(epochs), desc="Epochs"):  # for each epoch
-        lr_decay(lr, init_lr, 1e-9, last_epoch, epochs - 1)  # compute the new lr
+    for epoch in tqdm(range(epochs-last_epoch), desc="Epochs"):  # for each epoch
+        lr_decay(lr, init_lr, 1e-9, last_epoch + epoch, epochs)  # compute the new lr
         print('epoch: ' + str(epoch + last_epoch) + '. Learning rate: ' + str(lr.numpy()))
         for step in tqdm(range(steps_per_epoch), desc="Steps per Epoch"):  # for every batch
             with tf.GradientTape() as g:
@@ -63,17 +71,24 @@ def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None
             print('Test miou: ' + str(test_miou))
             print('')
 
-            # Log the results to TensorBoard
-
             # save model if better
             if test_miou > best_miou:
                 best_miou = test_miou
+            # Log the results
+            with summary_writer.as_default():
+                tf.summary.scalar('Training loss ', loss.numpy(), step=epoch+last_epoch)
+                tf.summary.scalar('Test accuracy ', test_acc.numpy(), step=epoch+last_epoch)
+                tf.summary.scalar('Test mIoU ', test_miou, step=epoch+last_epoch)
             # Try to make the saved model generally useful
-            model.save_weights(name_best_model + "model" + str(epoch), save_format='tf')
-            print("Written savedmodel in tf to " + name_best_model + "model" + str(epoch))
+            model.save_weights(name_best_model + "model" + str(epoch + last_epoch), save_format='tf')
+            print("Written savedmodel in tf to " + name_best_model + "model" + str(epoch + last_epoch))
         else:
             model.save_weights(name_best_model + "model" + str(epoch), save_format='tf')
-            print("Written savedmodel in tf to " + name_best_model + "model" + str(epoch))
+            print("Written savedmodel in tf to " + name_best_model + "model" + str(epoch + last_epoch))
+        if platform.system() != "Windows":
+            subprocess.run(["zip", "-r", "/content/drive/MyDrive/Universiteit/Deep_Learning/logs.zip", "/content/DL_EvSegNet/Ev-SegNet-master/logs"])
+            subprocess.run(["zip", "-r", "/content/drive/MyDrive/Universiteit/Deep_Learning/model.zip", "/content/DL_EvSegNet/Ev-SegNet-master/weights/model"])
+
 
         loader.suffle_segmentation()  # shuffle training set
 
@@ -92,6 +107,9 @@ if __name__ == "__main__":
     parser.add_argument("--height", help="number of epochs to train", default=224)
     parser.add_argument("--lr", help="init learning rate", default=1e-3)
     parser.add_argument("--n_gpu", help="number of the gpu", default=0)
+    parser.add_argument("--percentage_data_used", help="portion of the dataset used, e.g. 0.5 is 50%", default=1.0)
+    parser.add_argument("--log_dir", help="where the tensorboard logs are stored", default='logs/')
+
     args = parser.parse_args()
 
     n_gpu = int(args.n_gpu)
@@ -100,28 +118,31 @@ if __name__ == "__main__":
     # Suppress warnings
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-
     n_classes = int(args.n_classes)
     batch_size = int(args.batch_size)
     epochs = int(args.epochs)
     width = int(args.width)
     height = int(args.height)
     lr = float(args.lr)
+    percentage_data_used = float(args.percentage_data_used)
 
     channels = 6  # input of 6 channels
     channels_image = 0
     channels_events = channels - channels_image
     folder_best_model = args.model_path
+    folder_logs = args.log_dir
     name_best_model = os.path.join(folder_best_model, 'myBest')
     dataset_path = args.dataset
-    loader = Loader.Loader(dataFolderPath=dataset_path, n_classes=n_classes, problemType='segmentation',
-                           width=width, height=height, channels=channels_image, channels_events=channels_events, percentage_data_used=0.5)
+    loader = Loader.Loader(dataFolderPath=dataset_path, n_classes=n_classes, problemType='segmentation', width=width,
+                           height=height, channels=channels_image, channels_events=channels_events, percentage_data_used=percentage_data_used)
 
     data_load_time = time()
     print("Data has loaded in ", (data_load_time-start), 'seconds')
 
     if not os.path.exists(folder_best_model):
         os.makedirs(folder_best_model)
+    if not os.path.exists(folder_logs):
+        os.makedirs(folder_logs)
 
     # build model and optimizer
     model = Segception.Segception_small(num_classes=n_classes, weights=None, input_shape=(None, None, channels))
@@ -132,8 +153,10 @@ if __name__ == "__main__":
     learning_rate = tf.Variable(lr)
     # optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
     optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate)
-
     variables_to_optimize = model.variables
+
+    # Initialize writer for tensorboard
+    summary_writer = tf.summary.create_file_writer(folder_logs)
 
     # Init models (definitely not optional, needed to initialize buttfuck everything if you want to load the model)
     model.build(input_shape=(batch_size, width, height, channels))
@@ -146,11 +169,9 @@ if __name__ == "__main__":
     # uncomment the following lines
     try:
         latest = tf.train.latest_checkpoint(folder_best_model)
-        last_epoch = int(latest.split("myBestmodel")[1])
-        epochs = epochs-last_epoch
+        last_epoch = int(latest.split("myBestmodel")[1]) + 1
         model.load_weights(latest)
-        print("Model " + last_epoch + "loaded")
-
+        print("Model " + str(last_epoch) + "loaded")
     except Exception as e:
         last_epoch = 0
         print("Last model could not be found; starting from scratch")

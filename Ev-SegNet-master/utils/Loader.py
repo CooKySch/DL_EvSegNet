@@ -13,7 +13,7 @@ problemTypes = ['classification', 'segmentation']
 
 class Loader:
     def __init__(self, dataFolderPath, width=224, height=224, channels=3, n_classes=21, problemType='segmentation',
-                 median_frequency=0, other=False, channels_events=0):
+                 median_frequency=0, other=False, channels_events=0, percentage_data_used=1.0):
         self.dataFolderPath = dataFolderPath
         self.height = height
         self.channels_events = channels_events
@@ -119,11 +119,22 @@ class Loader:
             self.events_train_list.sort()
             self.events_test_list.sort()
 
+            # Select part of data to use later on. Do now when everything is aligned.
+            final_ind_train = max(0, min(len(self.image_train_list), int(percentage_data_used * len(self.image_train_list))))
+            final_ind_test = max(0, min(len(self.image_test_list), int(percentage_data_used * len(self.image_test_list))))
+            self.label_test_list = self.label_test_list[:final_ind_test]
+            self.image_test_list = self.image_test_list[:final_ind_test]
+            self.label_train_list = self.label_train_list[:final_ind_train]
+            self.image_train_list = self.image_train_list[:final_ind_train]
+            self.events_train_list = self.events_train_list[:final_ind_train]
+            self.events_test_list = self.events_test_list[:final_ind_test]
+
             # Shuffle train
             self.suffle_segmentation()
 
             print('Loaded ' + str(len(self.image_train_list)) + ' training samples')
             print('Loaded ' + str(len(self.image_test_list)) + ' testing samples')
+            print('Loaded ' + str(percentage_data_used*100) + '% of the dataset')
             self.n_classes = n_classes
 
             if self.median_frequency_soft != 0:
