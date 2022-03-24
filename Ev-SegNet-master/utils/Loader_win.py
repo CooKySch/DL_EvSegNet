@@ -4,6 +4,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.utils import to_categorical
 import glob
+from numpy.random import default_rng
 import cv2
 
 try:
@@ -17,7 +18,7 @@ problemTypes = ['classification', 'segmentation']
 
 class Loader:
     def __init__(self, dataFolderPath, width=224, height=224, channels=3, n_classes=21, problemType='segmentation',
-                 median_frequency=0, other=False, channels_events=0, percentage_data_used=1.0):
+                 median_frequency=0, other=False, channels_events=0, percentage_data_used=1.0, check_class_ratio=False):
         self.dataFolderPath = dataFolderPath
         self.height = height
         self.channels_events = channels_events
@@ -129,20 +130,32 @@ class Loader:
             self.events_train_list.sort()
             self.events_test_list.sort()
 
-            # Select part of data to use later on. Do now when everything is aligned.
-            final_ind_train = max(0, min(len(self.image_train_list), int(percentage_data_used * len(self.image_train_list))))
-            final_ind_test = max(0, min(len(self.image_test_list), int(percentage_data_used * len(self.image_test_list))))
-            self.label_test_list = self.label_test_list[:final_ind_test]
-            self.image_test_list = self.image_test_list[:final_ind_test]
-            self.label_train_list = self.label_train_list[:final_ind_train]
-            self.image_train_list = self.image_train_list[:final_ind_train]
-            self.events_train_list = self.events_train_list[:final_ind_train]
-            self.events_test_list = self.events_test_list[:final_ind_test]
+            if check_class_ratio:
+                train_set_ratio_before = get_class_ratio(self.label_train_list)
+                test_set_ratio_before = get_class_ratio(self.label_test_list)
+
+            # Select part of data to use later on. Do now when everything is sorted.
+            rng = default_rng()
+            train_ind = rng.choice(len(self.image_train_list), size=int(percentage_data_used * len(self.image_train_list)), replace=False)
+            test_ind  = rng.choice(len(self.image_test_list),  size=int(percentage_data_used * len(self.image_test_list)),  replace=False)
+
+            self.label_train_list = [self.label_train_list[i] for i in train_ind]
+            self.image_train_list = [self.image_train_list[i] for i in train_ind]
+            self.events_train_list = [self.events_train_list[i] for i in train_ind]
+            self.label_test_list = [self.label_test_list[i] for i in test_ind]
+            self.image_test_list = [self.image_test_list[i] for i in test_ind]
+            self.events_test_list = [self.events_test_list[i] for i in test_ind]
+
+            if check_class_ratio:
+                train_set_ratio_after = get_class_ratio(self.label_train_list)
+                test_set_ratio_after = get_class_ratio(self.label_test_list)
+                print(f"Train set class ratio before: {train_set_ratio_before} \nTrain set class ratio after:  {train_set_ratio_after}")
+                print(f"Test set class ratio before: {test_set_ratio_before} \nTest set class ratio after:  {test_set_ratio_after}")
 
             # Shuffle train
             self.suffle_segmentation()
 
-            print(f"{final_ind_train=}, {final_ind_test=}")
+            # print(f"{final_ind_train=}, {final_ind_test=}")
             print('Loaded ' + str(len(self.image_train_list)) + ' training samples')
             print('Loaded ' + str(len(self.image_test_list)) + ' testing samples')
             self.n_classes = n_classes
@@ -455,6 +468,16 @@ class Loader:
         - subir o bajar algo el valor de cualquier canal
         '''
         return event_image
+    
+def get_class_ratio(label_list):
+    """
+    Return the ratio of occurunces of a class in the labels.
+    """
+    label_images = [cv2.imread(label, 0).reshape(-1) for label in label_list]
+    label_bincount = np.asarray([[x in y for x in range(6)] for y in label_images], dtype=np.int8).sum(axis=0)
+
+    return label_bincount / len(label_list)
+
 
 
 def get_neighbour(i, j, max_i, max_j):
@@ -488,11 +511,11 @@ if __name__ == "__main__":
     
     loader = Loader('C:\\Users\\fabia\\Documents\\Master\\Deep Learning\\Project\\DL_EvSegNet\\Ev-SegNet-master\\data', problemType='segmentation',
                     n_classes=6, width=346, height=260,
-                    median_frequency=0.00, channels=1, channels_events=6)
+                    median_frequency=0.00, channels=1, channels_events=6, percentage_data_used=0.5, check_class_ratio=True)
     # print(loader.median_frequency_exp())
     x, y, mask = loader.get_batch(size=6, augmenter='segmentation')
 
-    for i in range(6):
+    for i in range(1):
         cv2.imshow('x', (x[i, :, :, 0]).astype(np.uint8))
         cv2.imshow('dvs+', (x[i, :, :, 1] * 127).astype(np.int8))
         cv2.imshow('dvs-', (x[i, :, :, 2] * 127).astype(np.int8))
@@ -501,7 +524,7 @@ if __name__ == "__main__":
         cv2.imshow('dvs+std', (x[i, :, :, 4] * 255).astype(np.int8))
         cv2.imshow('dvs-std', (x[i, :, :, 6] * 255).astype(np.int8))
         cv2.imshow('y', (np.argmax(y, 3)[i, :, :] * 35).astype(np.uint8))
-        print(mask.shape)
+        
         cv2.imshow('mask', (mask[i, :, :] * 255).astype(np.uint8))
         cv2.waitKey(0)
     cv2.destroyAllWindows()
