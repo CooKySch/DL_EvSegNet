@@ -91,51 +91,6 @@ def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None
 
         loader.suffle_segmentation()  # shuffle training set
 
-
-def hyperparameter_tuning(model, batch_size_range, learning_rate_range):
-    # performs hyperparameter tuning for a range of possible batch size and a range of initial learning rates.
-    # Use grid search method
-    batch_size_range = range(batch_size_range[0], batch_size_range[1], batch_size_range[2])
-    lr_range = range(learning_rate_range[0], learning_rate_range[1], learning_rate_range[2])
-
-    # initialise arrays containg test metrics
-    test_accs = np.zeros(len(learning_rate_range), len(batch_size_range))
-    mious = np.zeros(len(learning_rate_range), len(batch_size_range))
-
-    for lr, index_lr in tqdm(enumerate(lr_range)):
-        for batch_size, index_batch in enumerate(batch_size_range):
-            # initialize learning rate
-            learning_rate = tf.Variable(lr)
-
-            # construct optimizer
-            optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate)
-
-            variables_to_optimize = model.variables
-
-            # Init model
-            model.build(input_shape=(batch_size, width, height, channels))
-
-            # train model
-            train(loader=loader, model=model, epochs=epochs, batch_size=batch_size, augmenter='segmentation', lr=learning_rate,
-                  init_lr=lr, variables_to_optimize=variables_to_optimize, evaluation=False, preprocess_mode=None)
-
-            test_acc, test_miou = get_metrics(loader, model, loader.n_classes, train=False, flip_inference=True,
-                                              scales=[1, 0.75, 1.5],
-                                              write_images=False, preprocess_mode=None)
-            test_accs[index_lr, index_batch] = test_acc
-            mious[index_lr, index_batch] = test_miou
-
-    # find best performing parameters
-    index_max_test_acc = np.argmax(test_accs)
-    index_max_miou = np.argmax(mious)
-
-    #TODO: use miou or test_acc as evaluation metric for choosing hyperparameters? Chose MIoU for now
-    best_lr = index_max_miou[0]
-    best_batch_size = index_max_miou[1]
-    print('MIoU of ', max(mious), ' obtained with batch size of ', best_batch_size, ' and learning rate of ', best_lr)
-
-    return best_lr, best_batch_size
-
 if __name__ == "__main__":
     # Calculate time taken for data load.
     start = time()
@@ -152,7 +107,7 @@ if __name__ == "__main__":
     parser.add_argument("--n_gpu", help="number of the gpu", default=0)
     parser.add_argument("--percentage_data_used", help="portion of the dataset used, e.g. 0.5 is 50%", default=1.0)
     parser.add_argument("--log_dir", help="where the tensorboard logs are stored", default='logs/')
-    parser.add_argument("--hyperparam", help="perform hyperparameter tuning? True/False", default=False)
+    parser.add_argument("--hyperparam", help="perform hyperparameter tuning? True/False", default=0)
     parser.add_argument("--batch_size_range", help="range of batch size for hyperparameter tuning: min max step", nargs='+',)
     parser.add_argument("--lr_range", help="range of initial learning rates for hyperparameter tuning: min max step", nargs='+')
 
@@ -175,7 +130,7 @@ if __name__ == "__main__":
     lr = float(args.lr)
     percentage_data_used = float(args.percentage_data_used)
     check_class_ratio = args.check_class_ratio == 'True'
-    hyperparam_tuning = args.hyperparam
+    hyperparam_tuning = int(args.hyperparam)
 
     channels = 6  # input of 6 channels
     channels_image = 0
@@ -199,8 +154,53 @@ if __name__ == "__main__":
     model = Segception.Segception_small(num_classes=n_classes, weights=None, input_shape=(None, None, channels))
     print("SUCCESS: Build model and optimizer")
 
-    if hyperparam_tuning:
-        hyperparameter_tuning(model,args.batch_size_range, args.lr_range)
+    if hyperparam_tuning == 1:
+      last_epoch = 0
+
+      batch_size_range = list(args.batch_size_range)
+      lr_range = list(args.lr_range)
+
+      batch_range = np.arange(float(batch_size_range[0]), float(batch_size_range[1]), float(batch_size_range[2]))
+      lr_range = np.arange(float(lr_range[0]), float(lr_range[1]), float(lr_range[2]))
+
+      # initialise arrays containg test metrics
+      test_accs = np.zeros((len(lr_range), len(batch_range)))
+      mious = np.zeros((len(lr_range), len(batch_range)))
+
+      for index_lr, lr in tqdm(enumerate(lr_range)):
+          print('evaluating learning rate ', lr)
+          for index_batch, batch_size in enumerate(batch_range):
+              print('evaluating batch_size: ', batch_size)
+              batch_size = int(batch_size)
+              # initialize learning rate
+              learning_rate = tf.Variable(lr)
+
+              # construct optimizer
+              optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate)
+
+              variables_to_optimize = model.variables
+
+              # Init model
+              model.build(input_shape=(batch_size, width, height, channels))
+
+              # train model
+              train(loader=loader, model=model, epochs=epochs, batch_size=batch_size, augmenter='segmentation', lr=learning_rate,
+                    init_lr=lr, variables_to_optimize=variables_to_optimize, evaluation=False, preprocess_mode=None)
+
+              test_acc, test_miou = get_metrics(loader, model, loader.n_classes, train=False, flip_inference=True,
+                                                scales=[1, 0.75, 1.5],
+                                                write_images=False, preprocess_mode=None)
+              test_accs[index_lr, index_batch] = test_acc
+              mious[index_lr, index_batch] = test_miou
+
+      # find best performing parameters
+      index_max_test_acc = np.argmax(test_accs)
+      index_max_miou = np.argmax(mious)
+
+      #TODO: use miou or test_acc as evaluation metric for choosing hyperparameters? Chose MIoU for now
+      best_lr = index_max_miou[0]
+      best_batch_size = index_max_miou[1]
+      print('MIoU of ', max(mious), ' obtained with batch size of ', best_batch_size, ' and learning rate of ', best_lr)
 
 
     # optimizer
