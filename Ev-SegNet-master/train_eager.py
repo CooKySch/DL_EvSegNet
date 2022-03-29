@@ -7,6 +7,7 @@ import os
 import nets.Network as Segception
 from utils.utils import get_params, preprocess, lr_decay, convert_to_tensors, restore_state, init_model, get_metrics
 import argparse
+import matplotlib.pyplot as plt 
 from time import time
 from tqdm import tqdm
 
@@ -90,6 +91,42 @@ def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None
             subprocess.run(["zip", "-r", "/content/drive/MyDrive/Universiteit/Deep_Learning/model.zip", "/content/DL_EvSegNet/Ev-SegNet-master/weights/model"])
 
         loader.suffle_segmentation()  # shuffle training set
+
+def plot_param_grid(param1, param2, miou_values): 
+  """
+  plots the MIOU values for the hyperparameter ranges 
+  Input: - param1: range of hyperparameter 1 (np.arange)
+         - param2: range of hyperparameter 2 (np.arange) 
+         - miou_values: matrix with miou values correspoding to param1 and param2
+         combinations 
+  Outputs: - heat map with MIoU vs param1 and param2
+  """
+  x = param1.copy() 
+  y = param2.copy()
+  X, Y = np.meshgrid(x, y)
+
+  fig = plt.figure(frameon=False) 
+
+  im1 = plt.imshow(miou_values, cmap=plt.cm.gray)
+
+  # fix axis ticks 
+  nx = x.shape[0]
+  ny = y.shape[0]
+  no_labels_x = len(x) # number of x labels 
+  no_labels_y = len(y) # number of y labels 
+  step_x = int(nx/(no_labels_x - 1)) # label step size 
+  step_y = int(ny/(no_labels_y - 1)) 
+  x_positions = np.arange(0, nx, step_x) # pixel count at label position 
+  y_positions = np.arange(0, ny, step_y) 
+  x_labels = x[::step_x]
+  y_labels = y[::step_y]  
+  plt.xticks(x_positions, x_labels)
+  plt.yticks(y_positions, y_labels)
+
+  # add color bar 
+  plt.colorbar(plt.pcolor(miou_values))
+
+  plt.show()
 
 if __name__ == "__main__":
     # Calculate time taken for data load.
@@ -193,13 +230,22 @@ if __name__ == "__main__":
               test_accs[index_lr, index_batch] = test_acc
               mious[index_lr, index_batch] = test_miou
 
+      # plot results 
+      plot_param_grid(lr_range, batch_range, mious)
+
       # find best performing parameters
-      index_max_test_acc = np.argmax(test_accs)
-      index_max_miou = np.argmax(mious)
+      index_max_test_acc = np.unravel_index(np.argmax(test_accs, axis=None), test_accs.shape)
+      # index_max_test_acc = np.argmax(test_accs)
+      index_max_miou = np.unravel_index(np.argmax(mious, axis=None), mious.shape)
+      #index_max_miou = np.argmax(mious)
 
       #TODO: use miou or test_acc as evaluation metric for choosing hyperparameters? Chose MIoU for now
       best_lr = index_max_miou[0]
       best_batch_size = index_max_miou[1]
+      print('MIoUs: ', mious)
+      print('tes_accs: ', test_accs)
+      print('Best batch size: ', best_batch_size)
+      print('Best lr: ', best_lr)
       print('MIoU of ', max(mious), ' obtained with batch size of ', best_batch_size, ' and learning rate of ', best_lr)
 
 
