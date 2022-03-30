@@ -124,7 +124,7 @@ def plot_param_grid(param1, param2, miou_values):
   plt.yticks(y_positions, y_labels)
 
   # add color bar 
-  plt.colorbar(plt.pcolor(miou_values))
+  # plt.colorbar(plt.pcolor(miou_values))
 
   plt.show()
 
@@ -204,25 +204,31 @@ if __name__ == "__main__":
       test_accs = np.zeros((len(lr_range), len(batch_range)))
       mious = np.zeros((len(lr_range), len(batch_range)))
 
-      for index_lr, lr in tqdm(enumerate(lr_range)):
+      for index_lr, learning_rate in tqdm(enumerate(lr_range)):
           print('evaluating learning rate ', lr)
+          # initialize learning rate
+          learning_rate = tf.Variable(learning_rate)
+
+          # construct optimizer
+          optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate)
+
+          # loop over batch sizes 
           for index_batch, batch_size in enumerate(batch_range):
               print('evaluating batch_size: ', batch_size)
+
+              # build model and optimizer
+              model = Segception.Segception_small(num_classes=n_classes, weights=None, input_shape=(None, None, channels))
+              
               batch_size = int(batch_size)
-              # initialize learning rate
-              learning_rate = tf.Variable(lr)
 
-              # construct optimizer
-              optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate)
-
-              variables_to_optimize = model.variables
+              vars_to_optimize = model.variables
 
               # Init model
               model.build(input_shape=(batch_size, width, height, channels))
 
               # train model
               train(loader=loader, model=model, epochs=epochs, batch_size=batch_size, augmenter='segmentation', lr=learning_rate,
-                    init_lr=lr, variables_to_optimize=variables_to_optimize, evaluation=False, preprocess_mode=None)
+                    init_lr=lr, variables_to_optimize=vars_to_optimize, evaluation=False, preprocess_mode=None)
 
               test_acc, test_miou = get_metrics(loader, model, loader.n_classes, train=False, flip_inference=True,
                                                 scales=[1, 0.75, 1.5],
