@@ -240,13 +240,15 @@ if __name__ == "__main__":
       #index_max_miou = np.argmax(mious)
 
       #TODO: use miou or test_acc as evaluation metric for choosing hyperparameters? Chose MIoU for now
-      best_lr = index_max_miou[0]
-      best_batch_size = index_max_miou[1]
+      print('index_max_miou: ', index_max_miou)
+      print('lr_range:, ', lr_range)
+      best_lr = lr_range[index_max_miou[0]]
+      best_batch_size = batch_size_range[index_max_miou[1]]
       print('MIoUs: ', mious)
       print('tes_accs: ', test_accs)
       print('Best batch size: ', best_batch_size)
       print('Best lr: ', best_lr)
-      print('MIoU of ', max(mious), ' obtained with batch size of ', best_batch_size, ' and learning rate of ', best_lr)
+      #print('MIoU of ', max(mious), ' obtained with batch size of ', best_batch_size, ' and learning rate of ', best_lr)
 
 
     # optimizer
