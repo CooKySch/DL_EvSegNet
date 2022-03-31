@@ -79,6 +79,7 @@ def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None
                 tf.summary.scalar('Training loss ', loss.numpy(), step=epoch+last_epoch)
                 tf.summary.scalar('Test accuracy ', test_acc.numpy(), step=epoch+last_epoch)
                 tf.summary.scalar('Test mIoU ', test_miou, step=epoch+last_epoch)
+                
             # Try to make the saved model generally useful
             model.save_weights(name_best_model + "model" + str(epoch + last_epoch), save_format='tf')
             print("Written savedmodel in tf to " + name_best_model + "model" + str(epoch + last_epoch))
@@ -150,11 +151,11 @@ if __name__ == "__main__":
 
     # build model and optimizer
     model = Segception.Segception_small(num_classes=n_classes, weights=None, input_shape=(None, None, channels))
-
     print("SUCCESS: Build model and optimizer")
 
     # optimizer
     learning_rate = tf.Variable(lr)
+
     # optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
     optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate)
     variables_to_optimize = model.variables
@@ -164,11 +165,12 @@ if __name__ == "__main__":
 
     # Init models (definitely not optional, needed to initialize buttfuck everything if you want to load the model)
     model.build(input_shape=(batch_size, width, height, channels))
-
     print("SUCCESS: Initialized Model")
+
     # restore if model saved and show number of params
     get_params(model)
     model.summary()
+
     # If you want to load the model before training, e.g. restore a checkpoint of a session with less than 500 epochs,
     # uncomment the following lines
     try:

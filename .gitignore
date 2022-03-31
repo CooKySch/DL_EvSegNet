@@ -3,7 +3,8 @@
 .DS_Store
 */data/
 data/
-
+*.eps
+*.png
 
 
 images_out*
@@ -115,3 +116,4 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+

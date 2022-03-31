@@ -472,6 +472,19 @@ class Loader:
         '''
         return event_image
     
+    def get_class_ratio(self, percentage_data_used):
+        """
+        Return the ratio of occurunces of a class in the given percentage of labels.
+        """
+        rng = default_rng()
+        train_ind = rng.choice(len(self.image_train_list), size=int(percentage_data_used * len(self.image_train_list)), replace=False)
+        test_ind  = rng.choice(len(self.image_test_list),  size=int(percentage_data_used * len(self.image_test_list)),  replace=False)
+
+        label_train_list = [self.label_train_list[i] for i in train_ind]
+        label_test_list = [self.label_test_list[i] for i in test_ind]
+
+        return get_class_ratio(label_train_list), get_class_ratio(label_test_list)
+
 def get_class_ratio(label_list):
     """
     Return the ratio of occurunces of a class in the labels.
@@ -510,25 +523,52 @@ if __name__ == "__main__":
     # loader = Loader('/content/DL_EvSegNet/Ev-SegNet-master/data/dataset_our_codification/', problemType='segmentation',
     #                 n_classes=6, width=346, height=260,
     #                 median_frequency=0.00, channels=1, channels_events=6)
-
+    import matplotlib.pyplot as plt
     
     loader = Loader('C:\\Users\\fabia\\Documents\\Master\\Deep Learning\\Project\\DL_EvSegNet\\Ev-SegNet-master\\data', problemType='segmentation',
                     n_classes=6, width=346, height=260,
-                    median_frequency=0.00, channels=1, channels_events=6, percentage_data_used=0.5, check_class_ratio=True)
-    # print(loader.median_frequency_exp())
-    x, y, mask = loader.get_batch(size=6, augmenter='segmentation')
+                    median_frequency=0.00, channels=1, channels_events=6, percentage_data_used=1, check_class_ratio=False)
 
-    for i in range(1):
-        cv2.imshow('x', (x[i, :, :, 0]).astype(np.uint8))
-        cv2.imshow('dvs+', (x[i, :, :, 1] * 127).astype(np.int8))
-        cv2.imshow('dvs-', (x[i, :, :, 2] * 127).astype(np.int8))
-        cv2.imshow('dvs+mean', (x[i, :, :, 3] * 127).astype(np.int8))
-        cv2.imshow('dvs-mean', (x[i, :, :, 5] * 127).astype(np.int8))
-        cv2.imshow('dvs+std', (x[i, :, :, 4] * 255).astype(np.int8))
-        cv2.imshow('dvs-std', (x[i, :, :, 6] * 255).astype(np.int8))
-        cv2.imshow('y', (np.argmax(y, 3)[i, :, :] * 35).astype(np.uint8))
+    percentages_used = np.logspace(-2, 0, 25)
+    train_ratios = []
+    test_ratios = []
+
+    for percentage in percentages_used:
+        train_rat, test_rat = loader.get_class_ratio(percentage)
+        train_ratios.append(train_rat)
+        test_ratios.append(test_rat)
+
+    train_ratios = np.asarray(train_ratios)
+    test_ratios = np.asarray(test_ratios)
+
+    plt.figure(1)
+    plt.plot(percentages_used*100, train_ratios[:, 2:])
+    plt.ylabel("Percentage of labels containing the class")
+    plt.xlabel("Percentage of data used")
+    plt.title("Training data")
+    plt.legend(['Class 2','Class 3', 'Class 4','Class 5'])
+
+    plt.figure(2)
+    plt.plot(percentages_used*100, test_ratios[:, 2:])
+    plt.ylabel("Percentage of labels containing the class")
+    plt.xlabel("Percentage of data used")
+    plt.title("Test data")
+    plt.legend(['Class 2','Class 3', 'Class 4','Class 5'])
+    plt.show()
+    # # print(loader.median_frequency_exp())
+    # x, y, mask = loader.get_batch(size=6, augmenter='segmentation')
+
+    # for i in range(1):
+    #     cv2.imshow('x', (x[i, :, :, 0]).astype(np.uint8))
+    #     cv2.imshow('dvs+', (x[i, :, :, 1] * 127).astype(np.int8))
+    #     cv2.imshow('dvs-', (x[i, :, :, 2] * 127).astype(np.int8))
+    #     cv2.imshow('dvs+mean', (x[i, :, :, 3] * 127).astype(np.int8))
+    #     cv2.imshow('dvs-mean', (x[i, :, :, 5] * 127).astype(np.int8))
+    #     cv2.imshow('dvs+std', (x[i, :, :, 4] * 255).astype(np.int8))
+    #     cv2.imshow('dvs-std', (x[i, :, :, 6] * 255).astype(np.int8))
+    #     cv2.imshow('y', (np.argmax(y, 3)[i, :, :] * 35).astype(np.uint8))
         
-        cv2.imshow('mask', (mask[i, :, :] * 255).astype(np.uint8))
-        cv2.waitKey(0)
-    cv2.destroyAllWindows()
-    x, y, mask = loader.get_batch(size=3, train=False)
+    #     cv2.imshow('mask', (mask[i, :, :] * 255).astype(np.uint8))
+    #     cv2.waitKey(0)
+    # cv2.destroyAllWindows()
+    # x, y, mask = loader.get_batch(size=3, train=False)
