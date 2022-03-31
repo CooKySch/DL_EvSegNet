@@ -26,7 +26,7 @@ np.random.seed(7)
 
 
 # Trains the model for certains epochs on a dataset
-def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None, lr=None, init_lr=2e-4, variables_to_optimize=None, evaluation=True, preprocess_mode=None):
+def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None, lr=None, init_lr=2e-4, variables_to_optimize=None, evaluation=True, preprocess_mode=None, lr_pow=0.9):
     training_samples = len(loader.image_train_list)
     steps_per_epoch = int(training_samples / batch_size) + 1
     best_miou = 0
@@ -34,7 +34,7 @@ def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None
     print("Number of epochs: " + str(epochs) + "\n")
 
     for epoch in tqdm(range(epochs-last_epoch), desc="Epochs"):  # for each epoch
-        lr_decay(lr, init_lr, 1e-9, last_epoch + epoch, epochs)  # compute the new lr
+        lr_decay(lr, init_lr, 1e-9, last_epoch + epoch, epochs, power=lr_pow)  # compute the new lr
         print('epoch: ' + str(epoch + last_epoch) + '. Learning rate: ' + str(lr.numpy()))
         for step in tqdm(range(steps_per_epoch), desc="Steps per Epoch"):  # for every batch
             with tf.GradientTape() as g:
@@ -148,6 +148,7 @@ if __name__ == "__main__":
     parser.add_argument("--hyperparam", help="perform hyperparameter tuning? True/False", default=0)
     parser.add_argument("--batch_size_range", help="range of batch size for hyperparameter tuning: min max step", nargs='+',)
     parser.add_argument("--lr_range", help="range of initial learning rates for hyperparameter tuning: min max step", nargs='+')
+    parser.add_argument("--lr_power", help="exponent used for lr decay", default=0.9)
 
     # WIP
     parser.add_argument("--check_class_ratio", help="check ratio of classes after shrinking data set", choices=('True','False'), default='False')
@@ -169,6 +170,7 @@ if __name__ == "__main__":
     percentage_data_used = float(args.percentage_data_used)
     check_class_ratio = args.check_class_ratio == 'True'
     hyperparam_tuning = int(args.hyperparam)
+    lr_pow = float(args.lr_power)
 
     channels = 6  # input of 6 channels
     channels_image = 0
@@ -229,7 +231,7 @@ if __name__ == "__main__":
 
               # train model
               train(loader=loader, model=model, epochs=epochs, batch_size=batch_size, augmenter='segmentation', lr=learning_rate,
-                    init_lr=lr, variables_to_optimize=vars_to_optimize, evaluation=False, preprocess_mode=None)
+                    init_lr=lr, variables_to_optimize=vars_to_optimize, evaluation=False, preprocess_mode=None, lr_pow=lr_pow)
 
               test_acc, test_miou = get_metrics(loader, model, loader.n_classes, train=False, flip_inference=True,
                                                 scales=[1, 0.75, 1.5],
