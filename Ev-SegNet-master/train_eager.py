@@ -215,13 +215,13 @@ if __name__ == "__main__":
           # construct optimizer
           optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate)
 
-          # loop over batch sizes 
+          # loop over batch sizes
           for index_batch, batch_size in enumerate(batch_range):
               print('evaluating batch_size: ', batch_size)
 
               # build model and optimizer
               model = Segception.Segception_small(num_classes=n_classes, weights=None, input_shape=(None, None, channels))
-              
+
               batch_size = int(batch_size)
 
               vars_to_optimize = model.variables
@@ -239,7 +239,7 @@ if __name__ == "__main__":
               test_accs[index_lr, index_batch] = test_acc
               mious[index_lr, index_batch] = test_miou
 
-      # plot results 
+      # plot results
       plot_param_grid(lr_range, batch_range, mious)
 
       # find best performing parameters
@@ -252,51 +252,51 @@ if __name__ == "__main__":
       print('index_max_miou: ', index_max_miou)
       print('lr_range:, ', lr_range)
       best_lr = lr_range[index_max_miou[0]]
-      best_batch_size = batch_size_range[index_max_miou[1]]
+      best_batch_size = batch_range[index_max_miou[1]]
       print('MIoUs: ', mious)
       print('tes_accs: ', test_accs)
       print('Best batch size: ', best_batch_size)
       print('Best lr: ', best_lr)
       #print('MIoU of ', max(mious), ' obtained with batch size of ', best_batch_size, ' and learning rate of ', best_lr)
 
+    else:
+        # optimizer
+        learning_rate = tf.Variable(lr)
 
-    # optimizer
-    learning_rate = tf.Variable(lr)
+        # optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+        optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate)
+        variables_to_optimize = model.variables
 
-    # optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-    optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate)
-    variables_to_optimize = model.variables
+        # Initialize writer for tensorboard
+        summary_writer = tf.summary.create_file_writer(folder_logs)
 
-    # Initialize writer for tensorboard
-    summary_writer = tf.summary.create_file_writer(folder_logs)
+        # Init models (definitely not optional, needed to initialize buttfuck everything if you want to load the model)
+        model.build(input_shape=(batch_size, width, height, channels))
+        print("SUCCESS: Initialized Model")
 
-    # Init models (definitely not optional, needed to initialize buttfuck everything if you want to load the model)
-    model.build(input_shape=(batch_size, width, height, channels))
-    print("SUCCESS: Initialized Model")
+        # restore if model saved and show number of params
+        get_params(model)
+        model.summary()
 
-    # restore if model saved and show number of params
-    get_params(model)
-    model.summary()
+        # If you want to load the model before training, e.g. restore a checkpoint of a session with less than 500 epochs,
+        # uncomment the following lines
+        try:
+            latest = tf.train.latest_checkpoint(folder_best_model)
+            last_epoch = int(latest.split("myBestmodel")[1]) + 1
+            model.load_weights(latest)
+            print("Model " + str(last_epoch) + "loaded")
+        except Exception as e:
+            last_epoch = 0
+            print("Last model could not be found; starting from scratch")
 
-    # If you want to load the model before training, e.g. restore a checkpoint of a session with less than 500 epochs,
-    # uncomment the following lines
-    try:
-        latest = tf.train.latest_checkpoint(folder_best_model)
-        last_epoch = int(latest.split("myBestmodel")[1]) + 1
-        model.load_weights(latest)
-        print("Model " + str(last_epoch) + "loaded")
-    except Exception as e:
-        last_epoch = 0
-        print("Last model could not be found; starting from scratch")
+        train(loader=loader, model=model, epochs=epochs, batch_size=batch_size, augmenter='segmentation', lr=learning_rate,
+              init_lr=lr, variables_to_optimize=variables_to_optimize, evaluation=True, preprocess_mode=None)
 
-    train(loader=loader, model=model, epochs=epochs, batch_size=batch_size, augmenter='segmentation', lr=learning_rate,
-          init_lr=lr, variables_to_optimize=variables_to_optimize, evaluation=True, preprocess_mode=None)
+        # Test best model
+        print('Testing model')
+        model.summary()
 
-    # Test best model
-    print('Testing model')
-    model.summary()
-
-    test_acc, test_miou = get_metrics(loader, model, loader.n_classes, train=False, flip_inference=True, scales=[1, 0.75, 1.5],
-                                      write_images=False, preprocess_mode=None)
-    print('Test accuracy: ' + str(test_acc.numpy()))
-    print('Test miou: ' + str(test_miou))
+        test_acc, test_miou = get_metrics(loader, model, loader.n_classes, train=False, flip_inference=True, scales=[1, 0.75, 1.5],
+                                          write_images=False, preprocess_mode=None)
+        print('Test accuracy: ' + str(test_acc.numpy()))
+        print('Test miou: ' + str(test_miou))
