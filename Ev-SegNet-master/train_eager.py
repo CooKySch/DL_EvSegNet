@@ -7,6 +7,7 @@ import os
 import nets.Network as Segception
 from utils.utils import get_params, preprocess, lr_decay, convert_to_tensors, restore_state, init_model, get_metrics
 import argparse
+import matplotlib.pyplot as plt 
 from time import time
 from tqdm import tqdm
 
@@ -90,9 +91,43 @@ def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None
             subprocess.run(["zip", "-r", "/content/drive/MyDrive/Universiteit/Deep_Learning/logs.zip", "/content/DL_EvSegNet/Ev-SegNet-master/logs"])
             subprocess.run(["zip", "-r", "/content/drive/MyDrive/Universiteit/Deep_Learning/model.zip", "/content/DL_EvSegNet/Ev-SegNet-master/weights/model"])
 
-
         loader.suffle_segmentation()  # shuffle training set
 
+def plot_param_grid(param1, param2, miou_values): 
+  """
+  plots the MIOU values for the hyperparameter ranges 
+  Input: - param1: range of hyperparameter 1 (np.arange)
+         - param2: range of hyperparameter 2 (np.arange) 
+         - miou_values: matrix with miou values correspoding to param1 and param2
+         combinations 
+  Outputs: - heat map with MIoU vs param1 and param2
+  """
+  x = param1.copy() 
+  y = param2.copy()
+  X, Y = np.meshgrid(x, y)
+
+  fig = plt.figure(frameon=False) 
+
+  im1 = plt.imshow(miou_values, cmap=plt.cm.gray)
+
+  # fix axis ticks 
+  nx = x.shape[0]
+  ny = y.shape[0]
+  no_labels_x = len(x) # number of x labels 
+  no_labels_y = len(y) # number of y labels 
+  step_x = int(nx/(no_labels_x - 1)) # label step size 
+  step_y = int(ny/(no_labels_y - 1)) 
+  x_positions = np.arange(0, nx, step_x) # pixel count at label position 
+  y_positions = np.arange(0, ny, step_y) 
+  x_labels = x[::step_x]
+  y_labels = y[::step_y]  
+  plt.xticks(x_positions, x_labels)
+  plt.yticks(y_positions, y_labels)
+
+  # add color bar 
+  # plt.colorbar(plt.pcolor(miou_values))
+
+  plt.show()
 
 if __name__ == "__main__":
     # Calculate time taken for data load.
@@ -110,6 +145,9 @@ if __name__ == "__main__":
     parser.add_argument("--n_gpu", help="number of the gpu", default=0)
     parser.add_argument("--percentage_data_used", help="portion of the dataset used, e.g. 0.5 is 50%", default=1.0)
     parser.add_argument("--log_dir", help="where the tensorboard logs are stored", default='logs/')
+    parser.add_argument("--hyperparam", help="perform hyperparameter tuning? True/False", default=0)
+    parser.add_argument("--batch_size_range", help="range of batch size for hyperparameter tuning: min max step", nargs='+',)
+    parser.add_argument("--lr_range", help="range of initial learning rates for hyperparameter tuning: min max step", nargs='+')
 
     # WIP
     parser.add_argument("--check_class_ratio", help="check ratio of classes after shrinking data set", choices=('True','False'), default='False')
@@ -130,6 +168,7 @@ if __name__ == "__main__":
     lr = float(args.lr)
     percentage_data_used = float(args.percentage_data_used)
     check_class_ratio = args.check_class_ratio == 'True'
+    hyperparam_tuning = int(args.hyperparam)
 
     channels = 6  # input of 6 channels
     channels_image = 0
@@ -152,6 +191,72 @@ if __name__ == "__main__":
     # build model and optimizer
     model = Segception.Segception_small(num_classes=n_classes, weights=None, input_shape=(None, None, channels))
     print("SUCCESS: Build model and optimizer")
+
+    if hyperparam_tuning == 1:
+      last_epoch = 0
+
+      batch_size_range = list(args.batch_size_range)
+      lr_range = list(args.lr_range)
+
+      batch_range = np.arange(float(batch_size_range[0]), float(batch_size_range[1]), float(batch_size_range[2]))
+      lr_range = np.arange(float(lr_range[0]), float(lr_range[1]), float(lr_range[2]))
+
+      # initialise arrays containg test metrics
+      test_accs = np.zeros((len(lr_range), len(batch_range)))
+      mious = np.zeros((len(lr_range), len(batch_range)))
+
+      for index_lr, learning_rate in tqdm(enumerate(lr_range)):
+          print('evaluating learning rate ', lr)
+          # initialize learning rate
+          learning_rate = tf.Variable(learning_rate)
+
+          # construct optimizer
+          optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate)
+
+          # loop over batch sizes 
+          for index_batch, batch_size in enumerate(batch_range):
+              print('evaluating batch_size: ', batch_size)
+
+              # build model and optimizer
+              model = Segception.Segception_small(num_classes=n_classes, weights=None, input_shape=(None, None, channels))
+              
+              batch_size = int(batch_size)
+
+              vars_to_optimize = model.variables
+
+              # Init model
+              model.build(input_shape=(batch_size, width, height, channels))
+
+              # train model
+              train(loader=loader, model=model, epochs=epochs, batch_size=batch_size, augmenter='segmentation', lr=learning_rate,
+                    init_lr=lr, variables_to_optimize=vars_to_optimize, evaluation=False, preprocess_mode=None)
+
+              test_acc, test_miou = get_metrics(loader, model, loader.n_classes, train=False, flip_inference=True,
+                                                scales=[1, 0.75, 1.5],
+                                                write_images=False, preprocess_mode=None)
+              test_accs[index_lr, index_batch] = test_acc
+              mious[index_lr, index_batch] = test_miou
+
+      # plot results 
+      plot_param_grid(lr_range, batch_range, mious)
+
+      # find best performing parameters
+      index_max_test_acc = np.unravel_index(np.argmax(test_accs, axis=None), test_accs.shape)
+      # index_max_test_acc = np.argmax(test_accs)
+      index_max_miou = np.unravel_index(np.argmax(mious, axis=None), mious.shape)
+      #index_max_miou = np.argmax(mious)
+
+      #TODO: use miou or test_acc as evaluation metric for choosing hyperparameters? Chose MIoU for now
+      print('index_max_miou: ', index_max_miou)
+      print('lr_range:, ', lr_range)
+      best_lr = lr_range[index_max_miou[0]]
+      best_batch_size = batch_size_range[index_max_miou[1]]
+      print('MIoUs: ', mious)
+      print('tes_accs: ', test_accs)
+      print('Best batch size: ', best_batch_size)
+      print('Best lr: ', best_lr)
+      #print('MIoU of ', max(mious), ' obtained with batch size of ', best_batch_size, ' and learning rate of ', best_lr)
+
 
     # optimizer
     learning_rate = tf.Variable(lr)
