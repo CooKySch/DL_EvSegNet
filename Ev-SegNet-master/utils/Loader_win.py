@@ -4,7 +4,6 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.utils import to_categorical
 import glob
-from numpy.random import default_rng
 import cv2
 
 try:
@@ -137,9 +136,8 @@ class Loader:
                 test_set_ratio_before = get_class_ratio(self.label_test_list)
 
             # Select part of data to use later on. Do now when everything is sorted.
-            rng = default_rng()
-            train_ind = rng.choice(len(self.image_train_list), size=int(percentage_data_used * len(self.image_train_list)), replace=False)
-            test_ind  = rng.choice(len(self.image_test_list),  size=int(percentage_data_used * len(self.image_test_list)),  replace=False)
+            train_ind = np.random.choice(len(self.image_train_list), size=int(percentage_data_used * len(self.image_train_list)), replace=False)
+            test_ind  = np.random.choice(len(self.image_test_list),  size=int(percentage_data_used * len(self.image_test_list)),  replace=False)
 
             self.label_train_list = [self.label_train_list[i] for i in train_ind]
             self.image_train_list = [self.image_train_list[i] for i in train_ind]
@@ -476,9 +474,8 @@ class Loader:
         """
         Return the ratio of occurunces of a class in the given percentage of labels.
         """
-        rng = default_rng()
-        train_ind = rng.choice(len(self.image_train_list), size=int(percentage_data_used * len(self.image_train_list)), replace=False)
-        test_ind  = rng.choice(len(self.image_test_list),  size=int(percentage_data_used * len(self.image_test_list)),  replace=False)
+        train_ind = np.random.choice(len(self.image_train_list), size=int(percentage_data_used * len(self.image_train_list)), replace=False)
+        test_ind  = np.random.choice(len(self.image_test_list),  size=int(percentage_data_used * len(self.image_test_list)),  replace=False)
 
         label_train_list = [self.label_train_list[i] for i in train_ind]
         label_test_list = [self.label_test_list[i] for i in test_ind]

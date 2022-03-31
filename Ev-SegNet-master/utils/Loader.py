@@ -6,7 +6,6 @@ from tensorflow.keras.utils import to_categorical
 import glob
 import cv2
 from utils.augmenters import get_augmenter
-from numpy.random import default_rng
 
 np.random.seed(7)
 problemTypes = ['classification', 'segmentation']
@@ -125,9 +124,8 @@ class Loader:
                 test_set_ratio_before = get_class_ratio(self.label_test_list)
 
             # Select part of data to use later on. Do now when everything is sorted.
-            rng = default_rng()
-            train_ind = rng.choice(len(self.image_train_list), size=int(percentage_data_used * len(self.image_train_list)), replace=False)
-            test_ind  = rng.choice(len(self.image_test_list),  size=int(percentage_data_used * len(self.image_test_list)),  replace=False)
+            train_ind = np.random.choice(len(self.image_train_list), size=int(percentage_data_used * len(self.image_train_list)), replace=False)
+            test_ind  = np.random.choice(len(self.image_test_list),  size=int(percentage_data_used * len(self.image_test_list)),  replace=False)
 
             self.label_train_list = [self.label_train_list[i] for i in train_ind]
             self.image_train_list = [self.image_train_list[i] for i in train_ind]
