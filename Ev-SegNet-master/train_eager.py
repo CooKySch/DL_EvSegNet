@@ -208,9 +208,9 @@ if __name__ == "__main__":
       mious = np.zeros((len(lr_range), len(batch_range)))
 
       for index_lr, learning_rate in tqdm(enumerate(lr_range)):
-          print('evaluating learning rate ', lr)
+          print('evaluating learning rate ', learning_rate)
           # initialize learning rate
-          learning_rate = tf.Variable(learning_rate)
+          lr = tf.Variable(learning_rate)
 
           # construct optimizer
           optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate)
@@ -230,8 +230,8 @@ if __name__ == "__main__":
               model.build(input_shape=(batch_size, width, height, channels))
 
               # train model
-              train(loader=loader, model=model, epochs=epochs, batch_size=batch_size, augmenter='segmentation', lr=learning_rate,
-                    init_lr=lr, variables_to_optimize=vars_to_optimize, evaluation=False, preprocess_mode=None, lr_pow=lr_pow)
+              train(loader=loader, model=model, epochs=epochs, batch_size=batch_size, augmenter='segmentation', lr=lr,
+                    init_lr=learning_rate, variables_to_optimize=vars_to_optimize, evaluation=False, preprocess_mode=None, lr_pow=lr_pow)
 
               test_acc, test_miou = get_metrics(loader, model, loader.n_classes, train=False, flip_inference=True,
                                                 scales=[1, 0.75, 1.5],

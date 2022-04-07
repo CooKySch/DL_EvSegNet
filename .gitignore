@@ -3,6 +3,8 @@
 .DS_Store
 */data/
 data/
+/Ev-SegNet-master/weights
+
 *.eps
 *.png
 
