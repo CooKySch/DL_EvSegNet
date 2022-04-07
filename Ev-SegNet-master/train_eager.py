@@ -10,6 +10,7 @@ import argparse
 import matplotlib.pyplot as plt 
 from time import time
 from tqdm import tqdm
+import pickle
 
 
 # Change depending on os
@@ -32,7 +33,8 @@ def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None
     best_miou = 0
 
     print("Number of epochs: " + str(epochs) + "\n")
-
+    loss_arr = []
+    
     for epoch in tqdm(range(epochs-last_epoch), desc="Epochs"):  # for each epoch
         lr_decay(lr, init_lr, 1e-9, last_epoch + epoch, epochs, power=lr_pow)  # compute the new lr
         print('epoch: ' + str(epoch + last_epoch) + '. Learning rate: ' + str(lr.numpy()))
@@ -55,7 +57,8 @@ def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None
                 loss = 1*loss + 0.8*loss_aux
                 if show_loss:
                     print('Training loss: ' + str(loss.numpy()))
-
+            
+            loss_arr.append(loss.numpy())
             # Gets gradients and applies them
             grads = g.gradient(loss, variables_to_optimize)
             optimizer.apply_gradients(zip(grads, variables_to_optimize))
@@ -80,18 +83,22 @@ def train(loader, model, epochs=5, batch_size=2, show_loss=False, augmenter=None
                 tf.summary.scalar('Training loss ', loss.numpy(), step=epoch+last_epoch)
                 tf.summary.scalar('Test accuracy ', test_acc.numpy(), step=epoch+last_epoch)
                 tf.summary.scalar('Test mIoU ', test_miou, step=epoch+last_epoch)
-                
+            
             # Try to make the saved model generally useful
-            model.save_weights(name_best_model + "model" + str(epoch + last_epoch), save_format='tf')
-            print("Written savedmodel in tf to " + name_best_model + "model" + str(epoch + last_epoch))
+            # model.save_weights(name_best_model + "model" + str(epoch + last_epoch), save_format='tf')
+            # print("Written savedmodel in tf to " + name_best_model + "model" + str(epoch + last_epoch))
         else:
-            model.save_weights(name_best_model + "model" + str(epoch), save_format='tf')
-            print("Written savedmodel in tf to " + name_best_model + "model" + str(epoch + last_epoch))
-        if platform.system() != "Windows":
-            subprocess.run(["zip", "-r", "/content/drive/MyDrive/Universiteit/Deep_Learning/logs.zip", "/content/DL_EvSegNet/Ev-SegNet-master/logs"])
-            subprocess.run(["zip", "-r", "/content/drive/MyDrive/Universiteit/Deep_Learning/model.zip", "/content/DL_EvSegNet/Ev-SegNet-master/weights/model"])
-
+            pass
+            # model.save_weights(name_best_model + "model" + str(epoch), save_format='tf')
+            # print("Written savedmodel in tf to " + name_best_model + "model" + str(epoch + last_epoch))
+        # if platform.system() != "Windows":
+        #     subprocess.run(["zip", "-r", "/content/drive/MyDrive/Universiteit/Deep_Learning/logs.zip", "/content/DL_EvSegNet/Ev-SegNet-master/logs"])
+        #     subprocess.run(["zip", "-r", "/content/drive/MyDrive/Universiteit/Deep_Learning/model.zip", "/content/DL_EvSegNet/Ev-SegNet-master/weights/model"])
+        
         loader.suffle_segmentation()  # shuffle training set
+        
+    with open('results/loss_'+str(batch_size)+"_"+str(init_lr), 'wb') as f:
+        pickle.dump(loss_arr, f)
 
 def plot_param_grid(param1, param2, miou_values): 
   """
@@ -197,12 +204,12 @@ if __name__ == "__main__":
     if hyperparam_tuning == 1:
       last_epoch = 0
 
-      batch_size_range = list(args.batch_size_range)
-      lr_range = list(args.lr_range)
+      # batch_size_range = list(args.batch_size_range)
+      # lr_range = list(args.lr_range)
 
-      batch_range = np.arange(float(batch_size_range[0]), float(batch_size_range[1]), float(batch_size_range[2]))
-      lr_range = np.arange(float(lr_range[0]), float(lr_range[1]), float(lr_range[2]))
-
+      batch_range = np.array([4, 8]) # 2, 4, 8, 16, 32?
+      lr_range = lr_range = np.array([0.1, 0.05, 0.01, 0.005, 0.0001, 0.00005, 0.00001, 0.000005, 0.000001])
+    
       # initialise arrays containg test metrics
       test_accs = np.zeros((len(lr_range), len(batch_range)))
       mious = np.zeros((len(lr_range), len(batch_range)))
@@ -238,7 +245,16 @@ if __name__ == "__main__":
                                                 write_images=False, preprocess_mode=None)
               test_accs[index_lr, index_batch] = test_acc
               mious[index_lr, index_batch] = test_miou
-
+                
+              # Store data  
+              res_dict = {'acc' : test_acc.numpy(), 'miou' : test_miou}
+        
+              with open('results/result_'+str(batch_size)+"_"+str(learning_rate), 'wb') as f:
+                  pickle.dump(res_dict, f)
+        
+      print(f"Lr range: {lr_range}")
+      print(f"Bacthes: {batch_range}")
+      print(f"Mious: {mious}")  
       # plot results
       plot_param_grid(lr_range, batch_range, mious)
 
