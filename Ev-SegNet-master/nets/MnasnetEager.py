@@ -223,8 +223,8 @@ class Upsampling(tf.keras.Model):
 
 
 	def call(self, inputs,  training=None,  size_multiplier=2):
-        	x = tf.image.resize_bilinear(inputs, [inputs.get_shape()[1].value*size_multiplier,
-					inputs.get_shape()[2].value*size_multiplier], align_corners=True)
+        	x = tf.compat.v1.image.resize(inputs, [inputs.get_shape()[1].value*size_multiplier,
+					inputs.get_shape()[2].value*size_multiplier], method=tf.image.ResizeMethod.BILINEAR,  align_corners=True)
 
 		return x
 

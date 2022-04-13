@@ -1,10 +1,10 @@
 import numpy as np
 import tensorflow as tf
-import tensorflow.contrib.eager as tfe
 from sklearn.metrics import confusion_matrix
 import math
 import os
 import cv2
+from tqdm import tqdm
 
 # Prints the number of parameters of a model
 def get_params(model):
@@ -15,7 +15,7 @@ def get_params(model):
         shape = variable.get_shape()
         variable_parameters = 1
         for dim in shape:
-            variable_parameters *= dim.value
+            variable_parameters *= dim
         total_parameters += variable_parameters
     print("Total parameters of the net: " + str(total_parameters) + " == " + str(total_parameters / 1000000.0) + "M")
 
@@ -25,7 +25,7 @@ def preprocess(x, mode='imagenet'):
         if 'imagenet' in mode:
             return tf.keras.applications.xception.preprocess_input(x)
         elif 'normalize' in mode:
-            return  x.astype(np.float32) / 127.5 - 1
+            return x.astype(np.float32) / 127.5 - 1
     else:
         return x
 
@@ -52,7 +52,6 @@ def restore_state(saver, checkpoint):
 # inits a models (set input)
 def init_model(model, input_shape):
     model._set_inputs(np.zeros(input_shape))
-
 
 # Erase the elements if they are from ignore class. returns the labesl and predictions with no ignore labels
 def erase_ignore_pixels(labels, predictions, mask):
@@ -98,11 +97,11 @@ def inference(model, batch_images, n_classes, flip_inference=True, scales=[1], p
 
     for scale in scales:
         # scale the image
-        x_scaled = tf.image.resize_images(x, (x.shape[1].value * scale, x.shape[2].value * scale),
+        x_scaled = tf.compat.v1.image.resize(x, tf.convert_to_tensor([int(x.shape[1] * scale), int(x.shape[2] * scale)], dtype=tf.int32),
                                           method=tf.image.ResizeMethod.BILINEAR, align_corners=True)
         y_scaled = model(x_scaled, training=False)
         #  rescale the output
-        y_scaled = tf.image.resize_images(y_scaled, (x.shape[1].value, x.shape[2]),
+        y_scaled = tf.compat.v1.image.resize(y_scaled, (x.shape[1], x.shape[2]),
                                           method=tf.image.ResizeMethod.BILINEAR, align_corners=True)
         # get scores
         y_scaled = tf.nn.softmax(y_scaled)
@@ -111,7 +110,7 @@ def inference(model, batch_images, n_classes, flip_inference=True, scales=[1], p
             # calculates flipped scores
             y_flipped_ = tf.image.flip_left_right(model(tf.image.flip_left_right(x_scaled), training=False))
             # resize to rela scale
-            y_flipped_ = tf.image.resize_images(y_flipped_, (x.shape[1].value, x.shape[2]),
+            y_flipped_ = tf.compat.v1.image.resize(y_flipped_, (x.shape[1], x.shape[2]),
                                                 method=tf.image.ResizeMethod.BILINEAR, align_corners=True)
             # get scores
             y_flipped_score = tf.nn.softmax(y_flipped_)
@@ -130,14 +129,15 @@ def get_metrics(loader, model, n_classes, train=True, flip_inference=False, scal
     else:
         loader.index_test = 0
 
-    accuracy = tfe.metrics.Accuracy()
+    accuracy = tf.keras.metrics.Accuracy()
     conf_matrix = np.zeros((n_classes, n_classes))
     if train:
         samples = len(loader.image_train_list)
     else:
+        print("Getting metrics from image_test_list")
         samples = len(loader.image_test_list)
 
-    for step in xrange(samples):  # for every batch
+    for step in tqdm(range(samples)):  # for every batch
         x, y, mask = loader.get_batch(size=1, train=train, augmenter=False)
 
         [y] = convert_to_tensors([y])
@@ -169,9 +169,8 @@ def compute_iou(conf_matrix):
     IoU[np.isnan(IoU)] = 0
     print(IoU)
     miou = np.mean(IoU)
-    '''
-    print(ground_truth_set)
-    miou_no_zeros=miou*len(ground_truth_set)/np.count_nonzero(ground_truth_set)
-    print ('Miou without counting classes with 0 elements in the test samples: '+ str(miou_no_zeros))
-    '''
+    #print(ground_truth_set)
+    #miou_no_zeros=miou*len(ground_truth_set)/np.count_nonzero(ground_truth_set)
+    #print ('Miou without counting classes with 0 elements in the test samples: '+ str(miou_no_zeros))
+    
     return miou

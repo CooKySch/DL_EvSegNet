@@ -5,7 +5,7 @@ import tensorflow as tf
 from tensorflow.keras.utils import to_categorical
 import glob
 import cv2
-from augmenters import get_augmenter
+from utils.augmenters import get_augmenter
 
 np.random.seed(7)
 problemTypes = ['classification', 'segmentation']
@@ -13,7 +13,7 @@ problemTypes = ['classification', 'segmentation']
 
 class Loader:
     def __init__(self, dataFolderPath, width=224, height=224, channels=3, n_classes=21, problemType='segmentation',
-                 median_frequency=0, other=False, channels_events=0):
+                 median_frequency=0, other=False, channels_events=0, percentage_data_used=1.0, check_class_ratio=False):
         self.dataFolderPath = dataFolderPath
         self.height = height
         self.channels_events = channels_events
@@ -55,8 +55,7 @@ class Loader:
         '''
 
         # Load filepaths
-        files = glob.glob(os.path.join(dataFolderPath, '*', '*', '*'))
-
+        files = glob.glob(os.path.join(dataFolderPath, '*', '*', '*', '*'))
         print('Structuring test and train files...')
         self.test_list = [file for file in files if '/test/' in file]
         self.train_list = [file for file in files if '/train/' in file]
@@ -80,8 +79,10 @@ class Loader:
 
             print('Loaded ' + str(len(self.train_list)) + ' training samples')
             print('Loaded ' + str(len(self.test_list)) + ' testing samples')
+
             classes_train = [file.split('/train/')[1].split('/')[0] for file in self.train_list]
             classes_test = [file.split('/test/')[1].split('/')[0] for file in self.test_list]
+
             classes = np.unique(np.concatenate((classes_train, classes_test)))
             self.classes = {}
             for label in range(len(classes)):
@@ -102,13 +103,13 @@ class Loader:
             # Separate image and label lists
             # Sort them to align labels and images
 
+
             self.image_train_list = [file for file in self.train_list if '/images/' in file]
             self.image_test_list = [file for file in self.test_list if '/images/' in file]
             self.label_train_list = [file for file in self.train_list if '/labels/' in file]
             self.label_test_list = [file for file in self.test_list if '/labels/' in file]
             self.events_train_list = [file for file in self.train_list if '/events/' in file]
             self.events_test_list = [file for file in self.test_list if '/events/' in file]
-
 
             self.label_test_list.sort()
             self.image_test_list.sort()
@@ -117,11 +118,33 @@ class Loader:
             self.events_train_list.sort()
             self.events_test_list.sort()
 
+            if check_class_ratio:
+                train_set_ratio_before = get_class_ratio(self.label_train_list)
+                test_set_ratio_before = get_class_ratio(self.label_test_list)
+
+            # Select part of data to use later on. Do now when everything is sorted.
+            train_ind = np.random.choice(len(self.image_train_list), size=int(percentage_data_used * len(self.image_train_list)), replace=False)
+            test_ind  = np.random.choice(len(self.image_test_list),  size=int(percentage_data_used * len(self.image_test_list)),  replace=False)
+
+            self.label_train_list = [self.label_train_list[i] for i in train_ind]
+            self.image_train_list = [self.image_train_list[i] for i in train_ind]
+            self.events_train_list = [self.events_train_list[i] for i in train_ind]
+            self.label_test_list = [self.label_test_list[i] for i in test_ind]
+            self.image_test_list = [self.image_test_list[i] for i in test_ind]
+            self.events_test_list = [self.events_test_list[i] for i in test_ind]
+
+            if check_class_ratio:
+                train_set_ratio_after = get_class_ratio(self.label_train_list)
+                test_set_ratio_after = get_class_ratio(self.label_test_list)
+                print(f"Train set class ratio before: {train_set_ratio_before} \nTrain set class ratio after:  {train_set_ratio_after}")
+                print(f"Test set class ratio before: {test_set_ratio_before} \nTest set class ratio after:  {test_set_ratio_after}")
+
             # Shuffle train
             self.suffle_segmentation()
 
             print('Loaded ' + str(len(self.image_train_list)) + ' training samples')
             print('Loaded ' + str(len(self.image_test_list)) + ' testing samples')
+            print('Loaded ' + str(percentage_data_used*100) + '% of the dataset')
             self.n_classes = n_classes
 
             if self.median_frequency_soft != 0:
@@ -145,7 +168,7 @@ class Loader:
         This function transofrm those 1's into a weight using the median frequency
         '''
         weights = self.median_freq
-        for i in xrange(masks.shape[0]):
+        for i in range(masks.shape[0]):
             # for every mask of the batch
             label_image = labels[i, :, :]
             mask_image = masks[i, :, :]
@@ -154,7 +177,7 @@ class Loader:
             label_image = np.reshape(label_image, (dim_2 * dim_1))
             mask_image = np.reshape(mask_image, (dim_2 * dim_1))
 
-            for label_i in xrange(self.n_classes):
+            for label_i in range(self.n_classes):
                 # multiply the mask so far, with the median frequency wieght of that label
                 mask_image[label_image == label_i] = mask_image[label_image == label_i] * weights[label_i]
             # unique, counts = np.unique(mask_image, return_counts=True)
@@ -360,7 +383,7 @@ class Loader:
         elif self.problemType == 'segmentation':
             for image_label_train in self.label_train_list:
                 image = cv2.imread(image_label_train, 0)
-                for label in xrange(self.n_classes):
+                for label in range(self.n_classes):
                     self.freq[label] = self.freq[label] + sum(sum(image == label))
 
         # Common code
@@ -389,7 +412,7 @@ class Loader:
         make_up_pixels = np.random.randint(0, high=make_up_pixels_max)
         change_value_pixels = np.random.randint(0, high=change_value_pixels_max)
 
-        for index in xrange(swap_pixels):
+        for index in range(swap_pixels):
             i = np.random.randint(0, w)
             j = np.random.randint(0, h)
             i_n, j_n = get_neighbour(i, j, w-1, h-1)
@@ -397,14 +420,14 @@ class Loader:
             event_image[:, i, j, :] = event_image[:, i_n, j_n, :]
             event_image[:, i_n, j_n, :] = value_aux
 
-        for index in xrange(change_value_pixels):
+        for index in range(change_value_pixels):
             i = np.random.randint(0, w)
             j = np.random.randint(0, h)
             i_n, j_n = get_neighbour(i, j, w-1, h-1)
             if event_image[0, i_n, j_n, 0] > - 1 or event_image[0, i_n, j_n, 1] > - 1:
                 event_image[:, i, j, :] = event_image[:, i_n, j_n, :]
 
-        for index in xrange(make_up_pixels):
+        for index in range(make_up_pixels):
             i = np.random.randint(0, w)
             j = np.random.randint(0, h)
             event_image[:, i, j, 0] = np.random.random() * 2 - 1
@@ -414,7 +437,7 @@ class Loader:
             event_image[:, i, j, 4] = np.random.random() * 2 - 1
             event_image[:, i, j, 5] = np.random.random()
 
-        for index in xrange(delete_pixel_pixels):
+        for index in range(delete_pixel_pixels):
             i = np.random.randint(0, w)
             j = np.random.randint(0, h)
             event_image[:, i, j, 0] = -1
@@ -440,6 +463,14 @@ class Loader:
         '''
         return event_image
 
+def get_class_ratio(label_list):
+    """
+    Return the ratio of occurunces of a class in the labels.
+    """
+    label_images = [cv2.imread(label, 0).reshape(-1) for label in label_list]
+    label_bincount = np.asarray([[x in y for x in range(6)] for y in label_images], dtype=np.int8).sum(axis=0)
+
+    return label_bincount / len(label_list)
 
 def  get_neighbour(i, j, max_i, max_j):
     random_number= np.random.random()
@@ -464,12 +495,12 @@ def  get_neighbour(i, j, max_i, max_j):
 
 if __name__ == "__main__":
 
-    loader = Loader('/media/msrobot/discoGordo/Event-based/INIGO/dataset_our_codification', problemType='segmentation', n_classes=6, width=346, height=260,
+    loader = Loader('/content/DL_EvSegNet/Ev-SegNet-master/data/dataset_our_codification/', problemType='segmentation', n_classes=6, width=346, height=260,
                     median_frequency=0.00, channels=1, channels_events=6)
     # print(loader.median_frequency_exp())
     x, y, mask = loader.get_batch(size=6, augmenter='segmentation')
 
-    for i in xrange(6):
+    for i in range(6):
         cv2.imshow('x', (x[i, :, :, 0]).astype(np.uint8))
         cv2.imshow('dvs+', (x[i, :, :, 1] * 127).astype(np.int8))
         cv2.imshow('dvs-', (x[i, :, :, 2] * 127).astype(np.int8))

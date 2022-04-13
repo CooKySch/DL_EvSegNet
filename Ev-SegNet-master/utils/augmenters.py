@@ -22,7 +22,7 @@ def get_augmenter(name, c_val=255, vertical_flip=True):
                 sometimes(iaa.GaussianBlur(sigma=(0, 0.10))),
                 few(iaa.CoarseDropout(p=(0.05, 0.15), size_percent=(0.15, 0.35), per_channel=True)),
                 few(iaa.CoarseDropout(p=(0.05, 0.15), size_percent=(0.15, 0.35), per_channel=False)),
-                sometimes(iaa.ContrastNormalization((0.75, 1.35))),
+                sometimes(iaa.contrast.LinearContrast((0.75, 1.35))),
                 alot(iaa.Affine(
                     scale={"x": (scale), "y": (scale)},
                     # scale images to 80-120% of their size, individually per axis
@@ -67,7 +67,7 @@ def get_augmenter(name, c_val=255, vertical_flip=True):
             	sometimes(iaa.Add((value_add, value_add))),
                 sometimes(iaa.Multiply((value_Multiply, value_Multiply), per_channel=False)),
                 #sometimes(iaa.GaussianBlur(sigma=(value_GaussianBlur, value_GaussianBlur))),
-                sometimes(iaa.ContrastNormalization((ContrastNormalization, ContrastNormalization))),
+                sometimes(iaa.contrast.LinearContrast((ContrastNormalization, ContrastNormalization))),
                 iaa.Fliplr(value_flip),  # horizontally flip 50% of the images
                 #iaa.Flipud(value_flip2),  # vertically flip 50% of the images
                 iaa.Affine(
