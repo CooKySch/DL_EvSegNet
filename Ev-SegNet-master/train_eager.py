@@ -184,7 +184,7 @@ if __name__ == "__main__":
     channels_events = channels - channels_image
     folder_best_model = args.model_path
     folder_logs = args.log_dir
-    name_best_model = os.path.join(folder_best_model, 'myBest')
+    name_best_model = os.path.join(folder_best_model, 'myBestmodel')
     dataset_path = args.dataset
     loader = Loader.Loader(dataFolderPath=dataset_path, n_classes=n_classes, problemType='segmentation', width=width,
                            height=height, channels=channels_image, channels_events=channels_events, percentage_data_used=percentage_data_used, check_class_ratio=check_class_ratio)
@@ -207,8 +207,11 @@ if __name__ == "__main__":
       # batch_size_range = list(args.batch_size_range)
       # lr_range = list(args.lr_range)
 
-      batch_range = np.array([4, 8]) # 2, 4, 8, 16, 32?
-      lr_range = lr_range = np.array([0.1, 0.05, 0.01, 0.005, 0.0001, 0.00005, 0.00001, 0.000005, 0.000001])
+      #batch_range = np.array([4, 8]) # 2, 4, 8, 16, 32?
+      # lr_range = lr_range = np.array([0.1, 0.05, 0.01, 0.005, 0.0001, 0.0005, 0.00001, 0.000005, 0.000001])
+      #lr_range = lr_range = np.array([0.0005])
+      lr_range = np.array([0.0005])
+      batch_range = np.array([4, 8, 16])
     
       # initialise arrays containg test metrics
       test_accs = np.zeros((len(lr_range), len(batch_range)))
@@ -298,7 +301,7 @@ if __name__ == "__main__":
         # uncomment the following lines
         try:
             latest = tf.train.latest_checkpoint(folder_best_model)
-            last_epoch = int(latest.split("myBestmodel")[1]) + 1
+            last_epoch = 0 #int(latest.split("myBestmodel")[1]) + 1
             model.load_weights(latest)
             print("Model " + str(last_epoch) + "loaded")
         except Exception as e:
@@ -312,7 +315,7 @@ if __name__ == "__main__":
         print('Testing model')
         model.summary()
 
-        test_acc, test_miou = get_metrics(loader, model, loader.n_classes, train=False, flip_inference=True, scales=[1, 0.75, 1.5],
-                                          write_images=False, preprocess_mode=None)
+        #test_acc, test_miou = get_metrics(loader, model, loader.n_classes, train=False, flip_inference=True, scales=[1, 0.75, 1.5], write_images=True, preprocess_mode=None)
+        test_acc, test_miou = get_metrics(loader, model, loader.n_classes, train=False, flip_inference=True, scales=[1, 0.75, 1.5], write_images=True, preprocess_mode=None, n_samples_max=100)
         print('Test accuracy: ' + str(test_acc.numpy()))
         print('Test miou: ' + str(test_miou))

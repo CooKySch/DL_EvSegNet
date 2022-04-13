@@ -55,8 +55,7 @@ class Loader:
         '''
 
         # Load filepaths
-        files = glob.glob(os.path.join(dataFolderPath, '*', '*', '*'))
-
+        files = glob.glob(os.path.join(dataFolderPath, '*', '*', '*', '*'))
         print('Structuring test and train files...')
         self.test_list = [file for file in files if '/test/' in file]
         self.train_list = [file for file in files if '/train/' in file]

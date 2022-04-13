@@ -53,7 +53,6 @@ def restore_state(saver, checkpoint):
 def init_model(model, input_shape):
     model._set_inputs(np.zeros(input_shape))
 
-
 # Erase the elements if they are from ignore class. returns the labesl and predictions with no ignore labels
 def erase_ignore_pixels(labels, predictions, mask):
     indices = tf.squeeze(tf.where(tf.greater(mask, 0)))  # not ignore labels
@@ -170,9 +169,8 @@ def compute_iou(conf_matrix):
     IoU[np.isnan(IoU)] = 0
     print(IoU)
     miou = np.mean(IoU)
-    '''
-    print(ground_truth_set)
-    miou_no_zeros=miou*len(ground_truth_set)/np.count_nonzero(ground_truth_set)
-    print ('Miou without counting classes with 0 elements in the test samples: '+ str(miou_no_zeros))
-    '''
+    #print(ground_truth_set)
+    #miou_no_zeros=miou*len(ground_truth_set)/np.count_nonzero(ground_truth_set)
+    #print ('Miou without counting classes with 0 elements in the test samples: '+ str(miou_no_zeros))
+    
     return miou
